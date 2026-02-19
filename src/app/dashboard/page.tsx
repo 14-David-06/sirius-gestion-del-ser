@@ -84,7 +84,7 @@ export default function DashboardPage() {
           <p className="text-white/40 mt-2 text-sm">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-6 px-5 py-2.5 bg-white text-gray-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-colors"
+            className="mt-6 px-5 py-2.5 bg-white text-white rounded-full text-sm font-semibold hover:bg-white/90 transition-colors"
           >
             Reintentar
           </button>
@@ -299,27 +299,27 @@ export default function DashboardPage() {
               ]}
             >
               {data.contratos.slice(0, 5).map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <tr key={c.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white">
                     {(c.fields["ID Contrato"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-white">
                         {(c.fields["_nombreEmpleado"] as string) || "—"}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-white/30">
                         {(c.fields["ID_Empleado"] as string) || ""}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Tipo de Contrato"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Fecha Inicio"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Fecha Fin"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
@@ -370,34 +370,34 @@ export default function DashboardPage() {
               ]}
             >
               {data.contratos.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <tr key={c.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white">
                     {(c.fields["ID Contrato"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-white">
                       {(c.fields["_nombreEmpleado"] as string) || "—"}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-white/30">
                       {(c.fields["_estadoEmpleado"] as string) || ""}
                     </p>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                  <td className="px-6 py-4 text-sm text-white/40 font-mono">
                     {(c.fields["ID_Empleado"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Tipo de Contrato"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Fecha Inicio"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(c.fields["Fecha Fin"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={c.fields["Estado"] as string} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                  <td className="px-6 py-4 text-sm text-white/40 max-w-xs truncate">
                     {(c.fields["Observaciones"] as string) || "—"}
                   </td>
                 </tr>
@@ -451,25 +451,25 @@ export default function DashboardPage() {
               ]}
             >
               {data.listaChequeo.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs">
+                <tr key={item.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white max-w-xs">
                     {(item.fields["Documento"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">
+                  <td className="px-6 py-4 text-sm text-white/50 max-w-[200px] truncate">
                     {(item.fields["Capítulo"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(item.fields["Periodicidad"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(item.fields["Área Responsable"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {(item.fields["_nombreResponsable"] as string) || "—"}
                       </p>
-                      <p className="text-xs text-gray-400 font-mono">
+                      <p className="text-xs text-white/30 font-mono">
                         {(item.fields[
                           "ID_Colaborador_Responsable"
                         ] as string) || ""}
@@ -478,10 +478,10 @@ export default function DashboardPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {(item.fields["_nombreCustodio"] as string) || "—"}
                       </p>
-                      <p className="text-xs text-gray-400 font-mono">
+                      <p className="text-xs text-white/30 font-mono">
                         {(item.fields["ID_Custodio"] as string) || ""}
                       </p>
                     </div>
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                   <td className="px-6 py-4">
                     <StatusBadge status={item.fields["Estado"] as string} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(item.fields["Fecha de cumplimiento"] as string) || "—"}
                   </td>
                 </tr>
@@ -522,45 +522,45 @@ export default function DashboardPage() {
               ]}
             >
               {data.registroCumplimiento.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">
+                <tr key={r.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white font-mono">
                     {(r.fields["ID Registro"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-white">
                         {(r.fields["_nombreEmpleado"] as string) || "—"}
                       </p>
-                      <p className="text-xs text-gray-400 font-mono">
+                      <p className="text-xs text-white/30 font-mono">
                         {(r.fields["ID_Empleado"] as string) || ""}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {Array.isArray(r.fields["Tipo Documento"])
                       ? `${(r.fields["Tipo Documento"] as string[]).length} doc(s)`
                       : "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(r.fields["Período"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={r.fields["Estado"] as string} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(r.fields["Fecha de Cumplimiento"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm text-white">
                         {(r.fields["_nombreResponsable"] as string) || "—"}
                       </p>
-                      <p className="text-xs text-gray-400 font-mono">
+                      <p className="text-xs text-white/30 font-mono">
                         {(r.fields["ID_Responsable"] as string) || ""}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(r.fields["Fecha de Carga"] as string) || "—"}
                   </td>
                 </tr>
@@ -595,33 +595,33 @@ export default function DashboardPage() {
               ]}
             >
               {data.tipoDocumento.map((d) => (
-                <tr key={d.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">
+                <tr key={d.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white font-mono">
                     {(d.fields["Código"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                  <td className="px-6 py-4 text-sm text-white max-w-xs">
                     {(d.fields["Nombre del Documento"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">
+                  <td className="px-6 py-4 text-sm text-white/50 max-w-[200px] truncate">
                     {(d.fields["Capítulo"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(d.fields["Periodicidad"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(d.fields["Área Responsable"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4 text-sm text-center">
                     {d.fields["Aplica por Trabajador"] ? (
-                      <span className="text-emerald-500 font-bold">✓</span>
+                      <span className="text-emerald-400 font-bold">✓</span>
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-white/20">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                  <td className="px-6 py-4 text-sm text-white/40 font-mono">
                     {(d.fields["ID_Colaborador_Responsable"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                  <td className="px-6 py-4 text-sm text-white/40 font-mono">
                     {(d.fields["ID_Custodio"] as string) || "—"}
                   </td>
                 </tr>
@@ -654,14 +654,14 @@ export default function DashboardPage() {
               ]}
             >
               {data.personal.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">
+                <tr key={p.id} className="hover:bg-white/[0.03]">
+                  <td className="px-6 py-4 text-sm font-medium text-white font-mono">
                     {(p.fields["ID Empleado"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 text-sm font-medium text-white">
                     {(p.fields["Nombre completo"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(p.fields["Tipo Personal"] as string) || "—"}
                   </td>
                   <td className="px-6 py-4">
@@ -669,10 +669,10 @@ export default function DashboardPage() {
                       status={p.fields["Estado de actividad"] as string}
                     />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(p.fields["Correo electrónico"] as string) || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-white/50">
                     {(p.fields["Teléfono"] as string) || "—"}
                   </td>
                 </tr>
@@ -683,13 +683,16 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white mt-12">
+      <footer className="border-t border-white/[0.06] bg-gray-950 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between text-sm text-gray-400">
-            <Link href="/" className="hover:text-gray-600 transition-colors">
-              ← Volver al inicio
+          <div className="flex items-center justify-between text-sm text-white/30">
+            <Link href="/" className="hover:text-white/60 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              Volver al inicio
             </Link>
-            <p>Datos: Airtable · Gestión del Ser + Nómina Core</p>
+            <p className="text-xs text-white/20">Powered by Next.js · Airtable · Tailwind CSS</p>
           </div>
         </div>
       </footer>
