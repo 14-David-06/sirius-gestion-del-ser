@@ -14,14 +14,18 @@ export default function DataTable({
   icon,
 }: DataTableProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-100">
+    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+      <div className="px-6 py-5 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
-          {icon && <span className="text-2xl">{icon}</span>}
+          {icon && (
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-lg">
+              {icon}
+            </div>
+          )}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <h3 className="text-base font-semibold text-white">{title}</h3>
             {subtitle && (
-              <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+              <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>
             )}
           </div>
         </div>
@@ -29,18 +33,18 @@ export default function DataTable({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50/80">
+            <tr className="border-b border-white/[0.06]">
               {headers.map((h) => (
                 <th
                   key={h}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3.5 text-left text-[11px] font-semibold text-white/40 uppercase tracking-wider"
                 >
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">{children}</tbody>
+          <tbody className="divide-y divide-white/[0.04]">{children}</tbody>
         </table>
       </div>
     </div>

@@ -58,10 +58,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-500 font-medium">
+          <div className="w-16 h-16 border-[3px] border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin mx-auto" />
+          <p className="mt-6 text-white/40 font-medium text-sm">
             Cargando datos del dashboard...
           </p>
         </div>
@@ -71,16 +71,20 @@ export default function DashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-8 max-w-md text-center">
-          <span className="text-4xl">⚠️</span>
-          <h2 className="text-lg font-semibold text-gray-900 mt-4">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="rounded-2xl bg-white/[0.03] border border-red-500/20 p-8 max-w-md text-center">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+            <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-white mt-4">
             Error al cargar
           </h2>
-          <p className="text-gray-500 mt-2">{error}</p>
+          <p className="text-white/40 mt-2 text-sm">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="mt-6 px-5 py-2.5 bg-white text-gray-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-colors"
           >
             Reintentar
           </button>
@@ -114,50 +118,55 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="sticky top-0 z-10 bg-gray-950/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 bg-white/[0.06] backdrop-blur-md border border-white/[0.1] rounded-xl flex items-center justify-center text-white font-bold text-sm">
                   S
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">
+                  <h1 className="text-base font-bold text-white tracking-tight">
                     Sirius Gestión del Ser
                   </h1>
-                  <p className="text-xs text-gray-500">Panel de Control</p>
+                  <p className="text-[11px] text-white/40">Panel de Control</p>
                 </div>
               </Link>
             </div>
-            <div className="text-sm text-gray-400">
-              Última actualización:{" "}
-              {new Date().toLocaleString("es-CO", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 border border-emerald-400/20">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 font-medium">Conectado</span>
+              </div>
+              <span className="text-xs text-white/30">
+                {new Date().toLocaleString("es-CO", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
             </div>
           </div>
         </div>
       </header>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="border-b border-white/[0.06] bg-gray-950/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex gap-1 overflow-x-auto py-2" aria-label="Tabs">
+          <nav className="flex gap-1 overflow-x-auto py-2 scrollbar-hide" aria-label="Tabs">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                   activeTab === tab.key
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    ? "bg-white/[0.08] text-white border border-white/[0.1] shadow-lg shadow-white/[0.02]"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
                 }`}
               >
-                <span>{tab.icon}</span>
+                <span className="text-base">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -207,14 +216,20 @@ export default function DashboardPage() {
                 pendientes={data.stats.pendientes}
                 enProceso={data.stats.enProceso}
               />
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  ✅ Estado Lista de Chequeo
-                </h3>
-                <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex mb-6">
+              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-lg">
+                    ✅
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">Estado Lista de Chequeo</h3>
+                    <p className="text-sm text-white/40">{data.stats.totalChecklist} items totales</p>
+                  </div>
+                </div>
+                <div className="w-full h-3 bg-white/[0.06] rounded-full overflow-hidden flex mb-8">
                   {checklistStats.cumplido > 0 && (
                     <div
-                      className="bg-emerald-500 h-full"
+                      className="bg-emerald-400 h-full transition-all duration-700"
                       style={{
                         width: `${(checklistStats.cumplido / data.stats.totalChecklist) * 100}%`,
                       }}
@@ -222,7 +237,7 @@ export default function DashboardPage() {
                   )}
                   {checklistStats.enProceso > 0 && (
                     <div
-                      className="bg-amber-400 h-full"
+                      className="bg-amber-400 h-full transition-all duration-700"
                       style={{
                         width: `${(checklistStats.enProceso / data.stats.totalChecklist) * 100}%`,
                       }}
@@ -230,7 +245,7 @@ export default function DashboardPage() {
                   )}
                   {checklistStats.pendiente > 0 && (
                     <div
-                      className="bg-red-400 h-full"
+                      className="bg-red-400 h-full transition-all duration-700"
                       style={{
                         width: `${(checklistStats.pendiente / data.stats.totalChecklist) * 100}%`,
                       }}
@@ -238,29 +253,33 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="text-sm text-gray-600">
-                      Cumplido: <strong>{checklistStats.cumplido}</strong>
-                    </span>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                    <div className="w-2.5 h-8 rounded-full bg-emerald-400" />
+                    <div>
+                      <p className="text-xs text-white/40">Cumplido</p>
+                      <p className="text-lg font-bold text-white">{checklistStats.cumplido}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-400" />
-                    <span className="text-sm text-gray-600">
-                      En proceso: <strong>{checklistStats.enProceso}</strong>
-                    </span>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                    <div className="w-2.5 h-8 rounded-full bg-amber-400" />
+                    <div>
+                      <p className="text-xs text-white/40">En proceso</p>
+                      <p className="text-lg font-bold text-white">{checklistStats.enProceso}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <span className="text-sm text-gray-600">
-                      Pendiente: <strong>{checklistStats.pendiente}</strong>
-                    </span>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                    <div className="w-2.5 h-8 rounded-full bg-red-400" />
+                    <div>
+                      <p className="text-xs text-white/40">Pendiente</p>
+                      <p className="text-lg font-bold text-white">{checklistStats.pendiente}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-300" />
-                    <span className="text-sm text-gray-600">
-                      No aplica: <strong>{checklistStats.noAplica}</strong>
-                    </span>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                    <div className="w-2.5 h-8 rounded-full bg-gray-500" />
+                    <div>
+                      <p className="text-xs text-white/40">No aplica</p>
+                      <p className="text-lg font-bold text-white">{checklistStats.noAplica}</p>
+                    </div>
                   </div>
                 </div>
               </div>
