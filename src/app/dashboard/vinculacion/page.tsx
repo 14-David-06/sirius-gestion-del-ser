@@ -74,11 +74,11 @@ export default function VinculacionPage() {
     <div className="space-y-8">
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-5">
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border border-emerald-500/20 ring-1 ring-emerald-500/10 p-5 shadow-lg shadow-emerald-500/5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-emerald-400 font-medium">Vinculados (Activos)</p>
-              <p className="text-3xl font-bold text-emerald-400 mt-1">{activos.length}</p>
+              <p className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider">Vinculados (Activos)</p>
+              <p className="text-3xl font-extrabold text-emerald-400 mt-1">{activos.length}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -87,11 +87,11 @@ export default function VinculacionPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl bg-red-500/5 border border-red-500/10 p-5">
+        <div className="rounded-2xl bg-gradient-to-br from-red-500/15 to-red-600/5 border border-red-500/20 ring-1 ring-red-500/10 p-5 shadow-lg shadow-red-500/5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-red-400 font-medium">Desvinculados</p>
-              <p className="text-3xl font-bold text-red-400 mt-1">{inactivos.length}</p>
+              <p className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Desvinculados</p>
+              <p className="text-3xl font-extrabold text-red-400 mt-1">{inactivos.length}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
               <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -100,11 +100,11 @@ export default function VinculacionPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl bg-amber-500/5 border border-amber-500/10 p-5">
+        <div className="rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-600/5 border border-amber-500/20 ring-1 ring-amber-500/10 p-5 shadow-lg shadow-amber-500/5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-amber-400 font-medium">En Proceso</p>
-              <p className="text-3xl font-bold text-amber-400 mt-1">{enProceso.length}</p>
+              <p className="text-[11px] text-amber-400 font-semibold uppercase tracking-wider">En Proceso</p>
+              <p className="text-3xl font-extrabold text-amber-400 mt-1">{enProceso.length}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
               <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

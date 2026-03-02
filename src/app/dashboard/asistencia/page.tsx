@@ -81,8 +81,11 @@ export default function AsistenciaPage() {
   return (
     <div className="space-y-8">
       {/* Clock + Mark button */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-8 text-center">
-        <p className="text-6xl sm:text-7xl font-bold text-white font-mono tracking-wider">
+      <div className="rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] border border-white/[0.08] p-8 text-center backdrop-blur-sm shadow-xl shadow-black/20 relative overflow-hidden">
+        {/* Decorative glow */}
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="relative">
+        <p className="text-6xl sm:text-7xl font-extrabold text-white font-mono tracking-wider drop-shadow-lg">
           {hora}
         </p>
         <p className="text-sm text-white/40 mt-3 capitalize">{fecha}</p>
@@ -128,28 +131,29 @@ export default function AsistenciaPage() {
             {marcaExitosa}
           </div>
         )}
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 text-center">
-          <p className="text-xs text-white/40 font-medium">Marcas Hoy</p>
-          <p className="text-2xl font-bold text-white mt-1">{totalHoy}</p>
+        <div className="rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] border border-white/[0.08] ring-1 ring-white/[0.04] p-5 text-center shadow-lg shadow-black/10">
+          <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">Marcas Hoy</p>
+          <p className="text-2xl font-extrabold text-white mt-1">{totalHoy}</p>
         </div>
-        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-5 text-center">
-          <p className="text-xs text-emerald-400 font-medium">Entradas</p>
-          <p className="text-2xl font-bold text-emerald-400 mt-1">{entradas}</p>
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border border-emerald-500/20 ring-1 ring-emerald-500/10 p-5 text-center shadow-lg shadow-emerald-500/5">
+          <p className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider">Entradas</p>
+          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{entradas}</p>
         </div>
-        <div className="rounded-2xl bg-red-500/5 border border-red-500/10 p-5 text-center">
-          <p className="text-xs text-red-400 font-medium">Salidas</p>
-          <p className="text-2xl font-bold text-red-400 mt-1">{salidas}</p>
+        <div className="rounded-2xl bg-gradient-to-br from-red-500/15 to-red-600/5 border border-red-500/20 ring-1 ring-red-500/10 p-5 text-center shadow-lg shadow-red-500/5">
+          <p className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Salidas</p>
+          <p className="text-2xl font-extrabold text-red-400 mt-1">{salidas}</p>
         </div>
       </div>
 
       {/* History */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <h3 className="text-base font-semibold text-white">Historial Reciente</h3>
+      <div className="rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] overflow-hidden backdrop-blur-sm shadow-xl shadow-black/20">
+        <div className="px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+          <h3 className="text-base font-bold text-white tracking-tight">Historial Reciente</h3>
         </div>
         <div className="divide-y divide-white/[0.04]">
           {registros.map((r) => (

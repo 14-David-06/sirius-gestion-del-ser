@@ -56,9 +56,9 @@ export default function CronogramasPage() {
       {/* Legend */}
       <div className="flex flex-wrap gap-3">
         {Object.entries(turnos).map(([key, t]) => (
-          <div key={key} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${t.color}`}>
-            <span className="font-bold">{key}</span>
-            <span>{t.label}</span>
+          <div key={key} className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-medium backdrop-blur-sm shadow-lg ${t.color}`}>
+            <span className="text-sm font-extrabold">{key}</span>
+            <span className="font-semibold">{t.label}</span>
             <span className="text-[10px] opacity-60">{t.hours}</span>
           </div>
         ))}
@@ -95,7 +95,7 @@ export default function CronogramasPage() {
       </div>
 
       {/* Schedule grid */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] overflow-hidden backdrop-blur-sm shadow-xl shadow-black/20">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -140,30 +140,30 @@ export default function CronogramasPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-5">
-          <p className="text-xs text-blue-400 font-medium">Turno Mañana</p>
-          <p className="text-2xl font-bold text-blue-400 mt-1">
+        <div className="rounded-2xl bg-gradient-to-br from-blue-500/15 to-blue-600/5 border border-blue-500/20 ring-1 ring-blue-500/10 p-5 shadow-lg shadow-blue-500/5">
+          <p className="text-[11px] text-blue-400 font-semibold uppercase tracking-wider">Turno Mañana</p>
+          <p className="text-2xl font-extrabold text-blue-400 mt-1">
             {cronograma.reduce((acc, r) => acc + diasSemana.filter((d) => r[d] === "M").length, 0)}
           </p>
           <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
         </div>
-        <div className="rounded-2xl bg-amber-500/5 border border-amber-500/10 p-5">
-          <p className="text-xs text-amber-400 font-medium">Turno Tarde</p>
-          <p className="text-2xl font-bold text-amber-400 mt-1">
+        <div className="rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-600/5 border border-amber-500/20 ring-1 ring-amber-500/10 p-5 shadow-lg shadow-amber-500/5">
+          <p className="text-[11px] text-amber-400 font-semibold uppercase tracking-wider">Turno Tarde</p>
+          <p className="text-2xl font-extrabold text-amber-400 mt-1">
             {cronograma.reduce((acc, r) => acc + diasSemana.filter((d) => r[d] === "T").length, 0)}
           </p>
           <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
         </div>
-        <div className="rounded-2xl bg-purple-500/5 border border-purple-500/10 p-5">
-          <p className="text-xs text-purple-400 font-medium">Turno Noche</p>
-          <p className="text-2xl font-bold text-purple-400 mt-1">
+        <div className="rounded-2xl bg-gradient-to-br from-purple-500/15 to-purple-600/5 border border-purple-500/20 ring-1 ring-purple-500/10 p-5 shadow-lg shadow-purple-500/5">
+          <p className="text-[11px] text-purple-400 font-semibold uppercase tracking-wider">Turno Noche</p>
+          <p className="text-2xl font-extrabold text-purple-400 mt-1">
             {cronograma.reduce((acc, r) => acc + diasSemana.filter((d) => r[d] === "N").length, 0)}
           </p>
           <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
         </div>
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5">
-          <p className="text-xs text-white/40 font-medium">Descansos</p>
-          <p className="text-2xl font-bold text-white mt-1">
+        <div className="rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] border border-white/[0.08] ring-1 ring-white/[0.04] p-5 shadow-lg shadow-black/10">
+          <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">Descansos</p>
+          <p className="text-2xl font-extrabold text-white mt-1">
             {cronograma.reduce((acc, r) => acc + diasSemana.filter((d) => r[d] === "D").length, 0)}
           </p>
           <p className="text-xs text-white/20 mt-0.5">días esta semana</p>
