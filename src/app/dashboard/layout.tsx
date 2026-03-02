@@ -117,6 +117,7 @@ export default function DashboardLayout({
   async function handleLogout() {
     setLoggingOut(true);
     try {
+      sessionStorage.removeItem("sirius_toast_shown");
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       router.push("/login");

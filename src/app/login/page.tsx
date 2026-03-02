@@ -85,6 +85,7 @@ export default function LoginPage() {
         return;
       }
 
+      sessionStorage.removeItem("sirius_toast_shown");
       router.push("/dashboard");
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
@@ -129,6 +130,7 @@ export default function LoginPage() {
         return;
       }
 
+      sessionStorage.removeItem("sirius_toast_shown");
       router.push("/dashboard");
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
