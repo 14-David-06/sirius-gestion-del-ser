@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -44,12 +45,16 @@ export default function LandingPage() {
 
         {/* Navbar */}
         <nav className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-20 py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center font-bold text-lg">
-              S
-            </div>
-            <span className="text-lg font-semibold tracking-tight">Sirius</span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/Logo-Sirius.png"
+              alt="Sirius Gestión del Ser"
+              width={180}
+              height={60}
+              className="h-14 w-auto object-contain"
+              priority
+            />
+          </Link>
           <div className="hidden sm:flex items-center gap-8 text-sm text-white/60">
             <Link
               href="/login"
@@ -93,16 +98,78 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══════ FEATURES ═══════ */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-3">Funcionalidades</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">Todo en un solo lugar</h2>
+            <p className="text-white/40 mt-4 max-w-2xl mx-auto">
+              Centraliza la gestión laboral, documental y humana de tu organización
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: "📄",
+                title: "Manejo de Contratos",
+                desc: "Gestión integral de contratos laborales con seguimiento de estados, fechas y empleados vinculados.",
+              },
+              {
+                icon: "📋",
+                title: "Solicitudes Centralizadas",
+                desc: "Vacaciones, permisos y novedades de nómina en un solo módulo unificado.",
+              },
+              {
+                icon: "📅",
+                title: "Cronogramas de Trabajo",
+                desc: "Planificación visual de turnos y horarios del equipo por semana.",
+              },
+              {
+                icon: "⏰",
+                title: "Marcación de Asistencia",
+                desc: "Registro de entrada y salida en tiempo real con historial completo.",
+              },
+              {
+                icon: "👥",
+                title: "Vinculación Laboral",
+                desc: "Control del ciclo completo: vinculación, seguimiento y desvinculación de personal.",
+              },
+              {
+                icon: "✨",
+                title: "Mensajes Inspiradores con IA",
+                desc: "Genera mensajes motivacionales personalizados para tu equipo con inteligencia artificial.",
+              },
+            ].map((feature, i) => (
+              <div
+                key={i}
+                className="group rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6 hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-300"
+              >
+                <div className="w-12 h-12 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ FOOTER ═══════ */}
       <footer className="border-t border-white/[0.06] bg-gray-950">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center font-bold text-sm">
-                S
-              </div>
+              <Image
+                src="/Logo-Sirius.png"
+                alt="Sirius"
+                width={100}
+                height={32}
+                className="h-8 w-auto object-contain"
+              />
               <span className="text-sm text-white/40">
-                Sirius Gestión del Ser © {new Date().getFullYear()}
+                © {new Date().getFullYear()}
               </span>
             </div>
             <p className="text-xs text-white/25">

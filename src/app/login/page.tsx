@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 type Step = "cedula" | "password" | "create-password";
 
@@ -154,14 +155,27 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
+        {/* Back button */}
+        <button
+          onClick={() => router.push("/")}
+          className="mb-6 flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm group"
+        >
+          <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Volver
+        </button>
+
         {/* Logo & Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white/[0.06] backdrop-blur-md border border-white/[0.1] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-white">S</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Sirius Gestión del Ser
-          </h1>
+          <Image
+            src="/Logo-Sirius.png"
+            alt="Sirius Gestión del Ser"
+            width={160}
+            height={160}
+            className="mx-auto mb-4"
+            priority
+          />
           <p className="text-sm text-white/40 mt-1">
             Acceso al sistema
           </p>
