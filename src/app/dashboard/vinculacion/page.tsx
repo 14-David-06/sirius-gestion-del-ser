@@ -72,11 +72,6 @@ export default function VinculacionPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Vinculación y Desvinculación</h1>
-        <p className="text-sm text-white/40 mt-1">Gestión del ciclo laboral del personal</p>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-5">

@@ -53,11 +53,6 @@ export default function CronogramasPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Cronogramas de Trabajo</h1>
-        <p className="text-sm text-white/40 mt-1">Gestión de turnos y horarios del equipo</p>
-      </div>
-
       {/* Legend */}
       <div className="flex flex-wrap gap-3">
         {Object.entries(turnos).map(([key, t]) => (

@@ -14,16 +14,16 @@ export default function DataTable({
   icon,
 }: DataTableProps) {
   return (
-    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
-      <div className="px-6 py-5 border-b border-white/[0.06]">
+    <div className="rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] overflow-hidden backdrop-blur-sm shadow-xl shadow-black/20">
+      <div className="px-6 py-5 border-b border-white/[0.06] bg-white/[0.02]">
         <div className="flex items-center gap-3">
           {icon && (
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-lg">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 ring-1 ring-indigo-500/20 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/5">
               {icon}
             </div>
           )}
           <div>
-            <h3 className="text-base font-semibold text-white">{title}</h3>
+            <h3 className="text-base font-bold text-white tracking-tight">{title}</h3>
             {subtitle && (
               <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>
             )}
@@ -33,7 +33,7 @@ export default function DataTable({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-white/[0.06] bg-white/[0.01]">
               {headers.map((h) => (
                 <th
                   key={h}

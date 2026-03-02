@@ -129,6 +129,22 @@ export default function DashboardLayout({
     return pathname.startsWith(href);
   };
 
+  // Alternate background images per module
+  const bgImages = ["/18032025-DSC_2964.jpg", "/DSC_2854.jpg"];
+  const routeIndex = navItems.findIndex((item) => isActive(item.href));
+  const bgImage = bgImages[routeIndex % 2 === 0 ? 0 : 1];
+
+  // Route-based hero metadata
+  const routeMeta: Record<string, { title: string; subtitle: string; accent: string }> = {
+    "/dashboard": { title: "Resumen General", subtitle: "Panorama completo del sistema de gestión", accent: "from-indigo-500/80 to-blue-600/80" },
+    "/dashboard/contratos": { title: "Manejo de Contratos", subtitle: "Gestión integral de contratos laborales", accent: "from-purple-500/80 to-indigo-600/80" },
+    "/dashboard/solicitudes": { title: "Solicitudes", subtitle: "Vacaciones, permisos y novedades de nómina", accent: "from-blue-500/80 to-cyan-600/80" },
+    "/dashboard/cronogramas": { title: "Cronogramas de Trabajo", subtitle: "Turnos y horarios del equipo", accent: "from-amber-500/80 to-orange-600/80" },
+    "/dashboard/asistencia": { title: "Marcar Asistencia", subtitle: "Registro de entrada y salida en tiempo real", accent: "from-emerald-500/80 to-teal-600/80" },
+    "/dashboard/vinculacion": { title: "Vinculación y Desvinculación", subtitle: "Ciclo laboral del personal", accent: "from-rose-500/80 to-pink-600/80" },
+  };
+  const hero = routeMeta[pathname] || routeMeta["/dashboard"];
+
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
       {/* Mobile overlay */}
@@ -239,8 +255,47 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 lg:py-8 overflow-auto">
-          {children}
+        <main className="flex-1 overflow-auto">
+          {/* Hero banner with background image */}
+          <div className="relative h-[200px] sm:h-[240px] overflow-hidden">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+              style={{ backgroundImage: `url('${bgImage}')` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-gray-950/60 to-gray-950" />
+            <div className={`absolute inset-0 bg-gradient-to-r ${hero.accent} mix-blend-multiply opacity-60`} />
+            <div className="relative h-full flex flex-col justify-end px-6 sm:px-8 lg:px-10 pb-8">
+              <div className="flex items-end gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white/50 uppercase tracking-[0.2em] mb-2">
+                    Sirius Gestión del Ser
+                  </p>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                    {hero.title}
+                  </h1>
+                  <p className="text-sm sm:text-base text-white/60 mt-2 max-w-xl">
+                    {hero.subtitle}
+                  </p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/[0.1] flex-shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs text-white/60 font-medium whitespace-nowrap">
+                    {new Date().toLocaleDateString("es-CO", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Page body */}
+          <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8 -mt-4">
+            {children}
+          </div>
         </main>
       </div>
 

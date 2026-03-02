@@ -100,12 +100,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page title */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Resumen General</h1>
-        <p className="text-sm text-white/40 mt-1">Vista general del sistema de gestión</p>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

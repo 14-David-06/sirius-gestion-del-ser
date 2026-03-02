@@ -472,15 +472,6 @@ export default function SolicitudesPage() {
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Solicitudes</h1>
-        <p className="text-sm text-white/40 mt-1">
-          Vacaciones, permisos y novedades de nómina conectadas a Sirius Nomina
-          Core
-        </p>
-      </div>
-
       {/* Employee info card */}
       <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4 flex items-center gap-2">

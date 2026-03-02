@@ -80,11 +80,6 @@ export default function AsistenciaPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Marcar Asistencia</h1>
-        <p className="text-sm text-white/40 mt-1">Registro de entrada y salida</p>
-      </div>
-
       {/* Clock + Mark button */}
       <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-8 text-center">
         <p className="text-6xl sm:text-7xl font-bold text-white font-mono tracking-wider">

@@ -80,11 +80,6 @@ export default function ContratosPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Manejo de Contratos</h1>
-        <p className="text-sm text-white/40 mt-1">Gestión integral de contratos laborales</p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Total Contratos" value={data.stats.totalContratos} icon="📄" color="purple" />
         <StatCard title="Vigentes" value={data.stats.contratosVigentes} icon="✅" color="green" />
