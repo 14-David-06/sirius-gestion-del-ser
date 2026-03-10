@@ -62,10 +62,10 @@ function calcDiasHabiles(inicio: string, fin: string): number {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const inputClass =
-  "w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all placeholder:text-white/20 disabled:opacity-40";
+  "w-full px-4 py-3 bg-white/[0.06] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all placeholder:text-white/20 disabled:opacity-40 backdrop-blur-sm";
 
 const selectClass =
-  "w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all [&>option]:bg-gray-900";
+  "w-full px-4 py-3 bg-white/[0.06] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all [&>option]:bg-gray-950 backdrop-blur-sm";
 
 const labelClass = "block text-sm font-medium text-white/60 mb-2";
 
@@ -473,7 +473,7 @@ export default function SolicitudesPage() {
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       {/* Employee info card */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
+      <div className="rounded-2xl bg-black/20 border border-white/[0.08] p-6">
         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4 flex items-center gap-2">
           <svg
             className="w-4 h-4"
@@ -548,7 +548,7 @@ export default function SolicitudesPage() {
             }}
             className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
               tipo === tab.key
-                ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/25"
+                ? "bg-white/[0.12] text-white border border-white/[0.2]"
                 : "text-white/40 hover:text-white/70 hover:bg-white/[0.04] border border-transparent"
             }`}
           >
@@ -562,8 +562,8 @@ export default function SolicitudesPage() {
         <div
           className={`rounded-xl p-4 text-sm font-medium ${
             result.ok
-              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-              : "bg-red-500/10 text-red-400 border border-red-500/20"
+              ? "bg-white/[0.06] text-white/70 border border-white/[0.12]"
+              : "bg-white/[0.06] text-red-300 border border-white/[0.12]"
           }`}
         >
           {result.msg}
@@ -571,7 +571,7 @@ export default function SolicitudesPage() {
       )}
 
       {/* ═══ FORM ═══ */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6 space-y-6">
+      <div className="rounded-2xl bg-black/20 border border-white/[0.08] p-6 space-y-6">
         {/* ─── Vacaciones ─────────────────────────────────────────────── */}
         {tipo === "vacaciones" && (
           <>
@@ -707,19 +707,19 @@ export default function SolicitudesPage() {
                   className={selectClass}
                   required
                 >
-                  <option value="" className="bg-gray-900">
+                  <option value="" className="bg-gray-950">
                     -- Seleccione --
                   </option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
                     <option
                       key={h}
                       value={h.toString()}
-                      className="bg-gray-900"
+                      className="bg-gray-950"
                     >
                       {h} hora{h > 1 ? "s" : ""}
                     </option>
                   ))}
-                  <option value="mas8" className="bg-gray-900">
+                  <option value="mas8" className="bg-gray-950">
                     Más de 8 horas
                   </option>
                 </select>
@@ -749,14 +749,14 @@ export default function SolicitudesPage() {
                   className={selectClass}
                   required
                 >
-                  <option value="" className="bg-gray-900">
+                  <option value="" className="bg-gray-950">
                     -- Seleccione --
                   </option>
                   {TIPOS_PERMISO.map((t) => (
                     <option
                       key={t.value}
                       value={t.value}
-                      className="bg-gray-900"
+                      className="bg-gray-950"
                     >
                       {t.label}
                     </option>
@@ -829,11 +829,11 @@ export default function SolicitudesPage() {
                   className={selectClass}
                   required
                 >
-                  <option value="" className="bg-gray-900">
+                  <option value="" className="bg-gray-950">
                     -- Seleccione --
                   </option>
                   {TIPOS_NOVEDAD.map((t) => (
-                    <option key={t} value={t} className="bg-gray-900">
+                    <option key={t} value={t} className="bg-gray-950">
                       {t}
                     </option>
                   ))}
@@ -869,7 +869,7 @@ export default function SolicitudesPage() {
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     isRecording
                       ? "bg-white/[0.02] text-white/20 cursor-not-allowed"
-                      : "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+                      : "bg-white/[0.06] text-white/60 border border-white/[0.12] hover:bg-white/[0.1]"
                   }`}
                 >
                   🎙️ Grabar
@@ -881,7 +881,7 @@ export default function SolicitudesPage() {
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     !isRecording
                       ? "bg-white/[0.02] text-white/20 cursor-not-allowed"
-                      : "bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
+                      : "bg-white/[0.08] text-white/70 border border-white/[0.15] hover:bg-white/[0.12]"
                   }`}
                 >
                   ⏹️ Detener
@@ -894,7 +894,7 @@ export default function SolicitudesPage() {
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="w-1.5 h-5 bg-red-400 rounded-full animate-pulse"
+                      className="w-1.5 h-5 bg-white/40 rounded-full animate-pulse"
                       style={{
                         animationDelay: `${i * 0.15}s`,
                         animationDuration: "0.8s",
@@ -952,7 +952,7 @@ export default function SolicitudesPage() {
           <button
             onClick={handleSubmit}
             disabled={submitting || !empleado}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-indigo-500 text-white rounded-xl text-sm font-semibold hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-white/[0.12] hover:bg-white/[0.18] backdrop-blur-sm border border-white/[0.15] text-white rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {submitting ? (
               <>

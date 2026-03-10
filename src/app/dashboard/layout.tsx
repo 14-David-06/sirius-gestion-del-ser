@@ -10,7 +10,7 @@ const navItems = [
     label: "Resumen",
     href: "/dashboard",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
       </svg>
     ),
@@ -19,7 +19,7 @@ const navItems = [
     label: "Contratos",
     href: "/dashboard/contratos",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
       </svg>
     ),
@@ -28,7 +28,7 @@ const navItems = [
     label: "Solicitudes",
     href: "/dashboard/solicitudes",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
       </svg>
     ),
@@ -37,7 +37,7 @@ const navItems = [
     label: "Cronogramas",
     href: "/dashboard/cronogramas",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
       </svg>
     ),
@@ -46,7 +46,7 @@ const navItems = [
     label: "Asistencia",
     href: "/dashboard/asistencia",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
@@ -55,7 +55,7 @@ const navItems = [
     label: "Vinculación",
     href: "/dashboard/vinculacion",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
       </svg>
     ),
@@ -91,13 +91,12 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toast, setToast] = useState<{ icon: string; cat: string; msg: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
-    // Show inspirational message on first load (login)
     const shown = sessionStorage.getItem("sirius_toast_shown");
     if (shown) return;
     sessionStorage.setItem("sirius_toast_shown", "1");
@@ -130,174 +129,195 @@ export default function DashboardLayout({
   };
 
   // Alternate background images per module
-  const bgImages = ["/18032025-DSC_2964.jpg", "/DSC_2854.jpg"];
+  const bgImages = ["/21032025-DSCF8676.jpg", "/DSC_2854.jpg"];
   const routeIndex = navItems.findIndex((item) => isActive(item.href));
   const bgImage = bgImages[routeIndex % 2 === 0 ? 0 : 1];
 
   // Route-based hero metadata
-  const routeMeta: Record<string, { title: string; subtitle: string; accent: string }> = {
-    "/dashboard": { title: "Resumen General", subtitle: "Panorama completo del sistema de gestión", accent: "from-indigo-500/80 to-blue-600/80" },
-    "/dashboard/contratos": { title: "Manejo de Contratos", subtitle: "Gestión integral de contratos laborales", accent: "from-purple-500/80 to-indigo-600/80" },
-    "/dashboard/solicitudes": { title: "Solicitudes", subtitle: "Vacaciones, permisos y novedades de nómina", accent: "from-blue-500/80 to-cyan-600/80" },
-    "/dashboard/cronogramas": { title: "Cronogramas de Trabajo", subtitle: "Turnos y horarios del equipo", accent: "from-amber-500/80 to-orange-600/80" },
-    "/dashboard/asistencia": { title: "Marcar Asistencia", subtitle: "Registro de entrada y salida en tiempo real", accent: "from-emerald-500/80 to-teal-600/80" },
-    "/dashboard/vinculacion": { title: "Vinculación y Desvinculación", subtitle: "Ciclo laboral del personal", accent: "from-rose-500/80 to-pink-600/80" },
+  const routeMeta: Record<string, { title: string; subtitle: string }> = {
+    "/dashboard": { title: "Resumen General", subtitle: "Panorama completo del sistema de gestión" },
+    "/dashboard/contratos": { title: "Manejo de Contratos", subtitle: "Gestión integral de contratos laborales" },
+    "/dashboard/solicitudes": { title: "Solicitudes", subtitle: "Vacaciones, permisos y novedades de nómina" },
+    "/dashboard/cronogramas": { title: "Cronogramas de Trabajo", subtitle: "Turnos y horarios del equipo" },
+    "/dashboard/asistencia": { title: "Marcar Asistencia", subtitle: "Registro de entrada y salida en tiempo real" },
+    "/dashboard/vinculacion": { title: "Vinculación y Desvinculación", subtitle: "Ciclo laboral del personal" },
   };
   const hero = routeMeta[pathname] || routeMeta["/dashboard"];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <div className="min-h-screen text-white flex flex-col">
+      {/* Full-page background image — no overlay */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 -z-10"
+        style={{ backgroundImage: `url('${bgImage}')` }}
+      />
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[280px] bg-gray-950/95 backdrop-blur-2xl border-r border-white/[0.06] flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto shadow-2xl shadow-black/40 lg:shadow-none ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between px-6 h-[72px] border-b border-white/[0.06]">
-          <Link href="/" className="flex items-center">
+      {/* Top Navbar — glass panel */}
+      <header className="sticky top-0 z-40 bg-black/50 backdrop-blur-2xl border-b border-white/[0.12] shadow-lg shadow-black/20">
+        <div className="flex items-center gap-4 px-4 sm:px-8 h-[72px]">
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0">
             <Image
               src="/Logo-Sirius.png"
               alt="Sirius Gestión del Ser"
-              width={140}
-              height={48}
-              className="h-10 w-auto object-contain"
+              width={130}
+              height={44}
+              className="h-9 w-auto object-contain"
               priority
             />
           </Link>
-          <button
-            className="lg:hidden p-1.5 rounded-lg hover:bg-white/[0.06] text-white/40"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                isActive(item.href)
-                  ? "bg-indigo-500/15 text-white border border-indigo-500/20 shadow-lg shadow-indigo-500/5"
-                  : "text-white/50 hover:text-white hover:bg-white/[0.04]"
-              }`}
-            >
-              <span
-                className={`transition-colors ${
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-1 flex-1 px-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   isActive(item.href)
-                    ? "text-indigo-400"
-                    : "text-white/30 group-hover:text-white/60"
+                    ? "bg-white/[0.15] text-white border border-white/[0.2] shadow-lg shadow-black/10 backdrop-blur-sm"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.08]"
                 }`}
               >
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+                <span
+                  className={`transition-colors ${
+                    isActive(item.href)
+                      ? "text-white"
+                      : "text-white/40 group-hover:text-white/70"
+                  }`}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-        {/* Sidebar footer */}
-        <div className="px-4 py-4 border-t border-white/[0.06]">
-          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-emerald-400/10 border border-emerald-400/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400 font-medium">Sistema Conectado</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-40"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-            </svg>
-            {loggingOut ? "Cerrando sesión..." : "Cerrar Sesión"}
-          </button>
-        </div>
-      </aside>
+          {/* Right side */}
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-xs text-white/30 font-medium hidden sm:block">
+              {new Date().toLocaleString("es-CO", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </span>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar (mobile hamburger + date) */}
-        <header className="sticky top-0 z-20 bg-gray-950/70 backdrop-blur-2xl border-b border-white/[0.06] lg:border-0">
-          <div className="flex items-center justify-between px-4 sm:px-6 h-[56px] lg:h-[72px]">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/[0.12] backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs text-white/60 font-medium">Conectado</span>
+            </div>
+
             <button
-              className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60"
-              onClick={() => setSidebarOpen(true)}
+              onClick={handleLogout}
+              disabled={loggingOut}
+              title="Cerrar sesión"
+              className="hidden lg:flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.1] transition-all disabled:opacity-40"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
               </svg>
+              {loggingOut ? "Saliendo..." : "Salir"}
             </button>
 
-            <div className="flex items-center gap-4 ml-auto">
-              <span className="text-xs text-white/30 font-medium hidden sm:block">
-                {new Date().toLocaleString("es-CO", {
-                  dateStyle: "full",
-                  timeStyle: "short",
-                })}
-              </span>
+            {/* Mobile hamburger */}
+            <button
+              className="lg:hidden p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/60"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-white/[0.1] bg-black/60 backdrop-blur-2xl px-4 py-3 space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                  isActive(item.href)
+                    ? "bg-white/[0.12] text-white border border-white/[0.15]"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.06]"
+                }`}
+              >
+                <span
+                  className={`transition-colors ${
+                    isActive(item.href)
+                      ? "text-white"
+                      : "text-white/40 group-hover:text-white/70"
+                  }`}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </Link>
+            ))}
+            <div className="pt-2 border-t border-white/[0.08] mt-2">
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-40"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                {loggingOut ? "Cerrando sesión..." : "Cerrar Sesión"}
+              </button>
             </div>
           </div>
-        </header>
+        )}
+      </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          {/* Hero banner with background image */}
-          <div className="relative h-[200px] sm:h-[240px] overflow-hidden">
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-              style={{ backgroundImage: `url('${bgImage}')` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-gray-950/60 to-gray-950" />
-            <div className={`absolute inset-0 bg-gradient-to-r ${hero.accent} mix-blend-multiply opacity-60`} />
-            <div className="relative h-full flex flex-col justify-end px-6 sm:px-8 lg:px-10 pb-8">
-              <div className="flex items-end gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-[0.2em] mb-2">
-                    Sirius Gestión del Ser
-                  </p>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
-                    {hero.title}
-                  </h1>
-                  <p className="text-sm sm:text-base text-white/60 mt-2 max-w-xl">
-                    {hero.subtitle}
-                  </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/[0.1] flex-shrink-0">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-white/60 font-medium whitespace-nowrap">
-                    {new Date().toLocaleDateString("es-CO", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
+      {/* Main content */}
+      <main className="flex-1 overflow-auto relative">
+        {/* Hero banner — glass panel */}
+        <div className="relative mx-4 sm:mx-6 lg:mx-8 mt-6 rounded-2xl overflow-hidden bg-black/40 backdrop-blur-2xl border border-white/[0.1] shadow-2xl shadow-black/30">
+          <div className="px-6 sm:px-8 py-8 sm:py-10">
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2">
+                  Sirius Gestión del Ser
+                </p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                  {hero.title}
+                </h1>
+                <p className="text-sm sm:text-base text-white/50 mt-2 max-w-xl">
+                  {hero.subtitle}
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/[0.1] flex-shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-white/60 font-medium whitespace-nowrap">
+                  {new Date().toLocaleDateString("es-CO", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Page body */}
-          <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8 -mt-4">
+        {/* Page body */}
+        <div className="relative px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="rounded-2xl bg-black/35 backdrop-blur-2xl border border-white/[0.08] p-4 sm:p-6 lg:p-8 shadow-2xl shadow-black/30">
             {children}
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       {/* Inspirational toast */}
       {toast && (
@@ -308,7 +328,7 @@ export default function DashboardLayout({
               : "translate-y-4 opacity-0"
           }`}
         >
-          <div className="rounded-2xl bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-pink-500/15 border border-indigo-500/25 backdrop-blur-xl p-6 shadow-2xl shadow-indigo-500/10">
+          <div className="rounded-2xl bg-black/50 border border-white/[0.12] backdrop-blur-2xl p-6 shadow-2xl shadow-black/30">
             <div className="flex items-start gap-4">
               <div className="text-3xl flex-shrink-0 mt-0.5">{toast.icon}</div>
               <div className="flex-1 min-w-0">

@@ -3,20 +3,20 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, { dot: string; bg: string; text: string; border: string }> = {
-  Cumplido:      { dot: "bg-emerald-400", bg: "bg-emerald-400/10", text: "text-emerald-300", border: "border-emerald-400/20" },
-  Completado:    { dot: "bg-emerald-400", bg: "bg-emerald-400/10", text: "text-emerald-300", border: "border-emerald-400/20" },
-  Vigente:       { dot: "bg-emerald-400", bg: "bg-emerald-400/10", text: "text-emerald-300", border: "border-emerald-400/20" },
-  Activo:        { dot: "bg-emerald-400", bg: "bg-emerald-400/10", text: "text-emerald-300", border: "border-emerald-400/20" },
-  Pendiente:     { dot: "bg-red-400",     bg: "bg-red-400/10",     text: "text-red-300",     border: "border-red-400/20" },
-  "En proceso":  { dot: "bg-amber-400",   bg: "bg-amber-400/10",   text: "text-amber-300",   border: "border-amber-400/20" },
-  "En revisión": { dot: "bg-amber-400",   bg: "bg-amber-400/10",   text: "text-amber-300",   border: "border-amber-400/20" },
-  Vencido:       { dot: "bg-orange-400",   bg: "bg-orange-400/10",  text: "text-orange-300",  border: "border-orange-400/20" },
-  Terminado:     { dot: "bg-gray-400",     bg: "bg-gray-400/10",    text: "text-gray-400",    border: "border-gray-400/20" },
-  "No aplica":   { dot: "bg-gray-500",     bg: "bg-gray-500/10",    text: "text-gray-500",    border: "border-gray-500/20" },
-  Prórroga:      { dot: "bg-blue-400",     bg: "bg-blue-400/10",    text: "text-blue-300",    border: "border-blue-400/20" },
+  Cumplido:      { dot: "bg-white/50", bg: "bg-white/[0.06]", text: "text-white/70", border: "border-white/[0.12]" },
+  Completado:    { dot: "bg-white/50", bg: "bg-white/[0.06]", text: "text-white/70", border: "border-white/[0.12]" },
+  Vigente:       { dot: "bg-white/50", bg: "bg-white/[0.06]", text: "text-white/70", border: "border-white/[0.12]" },
+  Activo:        { dot: "bg-white/50", bg: "bg-white/[0.06]", text: "text-white/70", border: "border-white/[0.12]" },
+  Pendiente:     { dot: "bg-white/30", bg: "bg-white/[0.04]", text: "text-white/50", border: "border-white/[0.08]" },
+  "En proceso":  { dot: "bg-white/40", bg: "bg-white/[0.05]", text: "text-white/60", border: "border-white/[0.1]" },
+  "En revisión": { dot: "bg-white/40", bg: "bg-white/[0.05]", text: "text-white/60", border: "border-white/[0.1]" },
+  Vencido:       { dot: "bg-white/25", bg: "bg-white/[0.03]", text: "text-white/45", border: "border-white/[0.07]" },
+  Terminado:     { dot: "bg-white/20", bg: "bg-white/[0.03]", text: "text-white/40", border: "border-white/[0.06]" },
+  "No aplica":   { dot: "bg-white/15", bg: "bg-white/[0.02]", text: "text-white/30", border: "border-white/[0.05]" },
+  Prórroga:      { dot: "bg-white/35", bg: "bg-white/[0.05]", text: "text-white/55", border: "border-white/[0.09]" },
 };
 
-const defaultStyle = { dot: "bg-gray-400", bg: "bg-gray-400/10", text: "text-gray-400", border: "border-gray-400/20" };
+const defaultStyle = { dot: "bg-white/20", bg: "bg-white/[0.03]", text: "text-white/40", border: "border-white/[0.06]" };
 
 export default function StatusBadge({ status }: StatusBadgeProps) {
   if (!status) return <span className="text-white/20 text-xs">—</span>;

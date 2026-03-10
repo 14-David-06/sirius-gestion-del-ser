@@ -57,7 +57,7 @@ export default function ContratosPage() {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="rounded-2xl bg-white/[0.03] border border-red-500/20 p-8 max-w-md text-center">
+        <div className="rounded-2xl bg-black/30 border border-white/[0.1] p-8 max-w-md text-center">
           <h2 className="text-lg font-semibold text-white mt-4">Error al cargar</h2>
           <p className="text-white/40 mt-2 text-sm">{error}</p>
           <button onClick={() => window.location.reload()} className="mt-6 px-5 py-2.5 bg-white text-gray-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-colors">
@@ -101,7 +101,7 @@ export default function ContratosPage() {
           placeholder="Buscar por ID, empleado o tipo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all text-sm"
+          className="w-full pl-12 pr-4 py-3 bg-black/20 border border-white/[0.12] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all text-sm backdrop-blur-sm"
         />
       </div>
 
@@ -112,7 +112,7 @@ export default function ContratosPage() {
         headers={["ID Contrato", "Empleado", "Tipo", "Fecha Inicio", "Fecha Fin", "Estado", "Observaciones"]}
       >
         {filtered.map((c) => (
-          <tr key={c.id} className="hover:bg-white/[0.03]">
+          <tr key={c.id} className="hover:bg-black/20">
             <td className="px-6 py-4 text-sm font-medium text-white">
               {(c.fields["ID Contrato"] as string) || "—"}
             </td>

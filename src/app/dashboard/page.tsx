@@ -139,9 +139,9 @@ export default function DashboardPage() {
           pendientes={data.stats.pendientes}
           enProceso={data.stats.enProceso}
         />
-        <div className="rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] p-6 backdrop-blur-sm shadow-xl shadow-black/20">
+        <div className="rounded-2xl bg-black/30 border border-white/[0.08] p-6 backdrop-blur-sm shadow-xl shadow-black/20">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 flex items-center justify-center text-lg shadow-lg shadow-emerald-500/5">
+            <div className="w-11 h-11 rounded-xl bg-white/[0.08] ring-1 ring-white/[0.12] flex items-center justify-center text-lg shadow-lg shadow-black/10">
               ✅
             </div>
             <div>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
           <div className="w-full h-4 bg-white/[0.06] rounded-full overflow-hidden flex mb-8 ring-1 ring-white/[0.04]">
             {checklistStats.cumplido > 0 && (
               <div
-                className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full transition-all duration-700 shadow-lg shadow-emerald-500/20"
+                className="bg-white/30 h-full transition-all duration-700 shadow-lg shadow-black/10"
                 style={{
                   width: `${(checklistStats.cumplido / data.stats.totalChecklist) * 100}%`,
                 }}
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             )}
             {checklistStats.enProceso > 0 && (
               <div
-                className="bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-700 shadow-lg shadow-amber-500/20"
+                className="bg-white/20 h-full transition-all duration-700 shadow-lg shadow-black/10"
                 style={{
                   width: `${(checklistStats.enProceso / data.stats.totalChecklist) * 100}%`,
                 }}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
             )}
             {checklistStats.pendiente > 0 && (
               <div
-                className="bg-gradient-to-r from-red-500 to-red-400 h-full transition-all duration-700 shadow-lg shadow-red-500/20"
+                className="bg-white/10 h-full transition-all duration-700 shadow-lg shadow-black/10"
                 style={{
                   width: `${(checklistStats.pendiente / data.stats.totalChecklist) * 100}%`,
                 }}
@@ -176,22 +176,22 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-emerald-500/15 to-transparent border border-white/[0.06] ring-1 ring-emerald-400/20">
-              <div className="w-2.5 h-10 rounded-full bg-emerald-400 shadow-lg" />
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-black/25 border border-white/[0.1] ring-1 ring-white/[0.1] backdrop-blur-sm">
+              <div className="w-2.5 h-10 rounded-full bg-white/30 shadow-lg" />
               <div>
                 <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">Cumplido</p>
                 <p className="text-2xl font-extrabold text-white">{checklistStats.cumplido}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-amber-500/15 to-transparent border border-white/[0.06] ring-1 ring-amber-400/20">
-              <div className="w-2.5 h-10 rounded-full bg-amber-400 shadow-lg" />
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-black/25 border border-white/[0.1] ring-1 ring-white/[0.1] backdrop-blur-sm">
+              <div className="w-2.5 h-10 rounded-full bg-white/20 shadow-lg" />
               <div>
                 <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">En proceso</p>
                 <p className="text-2xl font-extrabold text-white">{checklistStats.enProceso}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-red-500/15 to-transparent border border-white/[0.06] ring-1 ring-red-400/20">
-              <div className="w-2.5 h-10 rounded-full bg-red-400 shadow-lg" />
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-black/25 border border-white/[0.1] ring-1 ring-white/[0.1] backdrop-blur-sm">
+              <div className="w-2.5 h-10 rounded-full bg-white/10 shadow-lg" />
               <div>
                 <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">Pendiente</p>
                 <p className="text-2xl font-extrabold text-white">{checklistStats.pendiente}</p>
