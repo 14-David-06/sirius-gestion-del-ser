@@ -140,7 +140,7 @@ export default function DashboardLayout({
     "/dashboard/solicitudes": { title: "Solicitudes", subtitle: "Vacaciones, permisos y novedades de nómina" },
     "/dashboard/cronogramas": { title: "Cronogramas de Trabajo", subtitle: "Turnos y horarios del equipo" },
     "/dashboard/asistencia": { title: "Marcar Asistencia", subtitle: "Registro de entrada y salida en tiempo real" },
-    "/dashboard/vinculacion": { title: "Vinculación y Desvinculación", subtitle: "Ciclo laboral del personal" },
+    "/dashboard/vinculacion": { title: "Vinculación y Desvinculación", subtitle: "Gestión de personal y cumplimiento documental" },
   };
   const hero = routeMeta[pathname] || routeMeta["/dashboard"];
 

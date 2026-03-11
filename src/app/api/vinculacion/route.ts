@@ -14,7 +14,8 @@ import { verifyJWT } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const BASE_ID = env.airtable.baseNominaCore;
-const TABLE = env.airtable.tablePersonal; // "Personal"
+const TABLE = env.airtable.tablePersonal;
+const TABLE_AREAS = env.airtable.tableAreas;
 const API_KEY = env.airtable.apiKey;
 
 function airtableHeaders() {
@@ -44,56 +45,62 @@ export async function GET(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   try {
-    // Fetch ALL records with pagination
-    const allRecords: Array<{ id: string; fields: Record<string, unknown>; createdTime: string }> = [];
-    let offset: string | undefined;
+    // Fetch Personal + Areas in parallel
+    const fetchPaginated = async (table: string, sort?: string) => {
+      const records: Array<{ id: string; fields: Record<string, unknown>; createdTime: string }> = [];
+      let offset: string | undefined;
+      do {
+        const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(table)}`);
+        if (offset) url.searchParams.set("offset", offset);
+        if (sort) {
+          url.searchParams.set("sort[0][field]", sort);
+          url.searchParams.set("sort[0][direction]", "asc");
+        }
+        const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${API_KEY}` }, cache: "no-store" });
+        if (!res.ok) throw new Error(`Airtable ${table} error: ${res.status}`);
+        const data = await res.json();
+        records.push(...data.records);
+        offset = data.offset;
+      } while (offset);
+      return records;
+    };
 
-    do {
-      const url = new URL(
-        `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE)}`
-      );
-      if (offset) url.searchParams.set("offset", offset);
-      url.searchParams.set("sort[0][field]", "ID Empleado");
-      url.searchParams.set("sort[0][direction]", "asc");
+    const [allRecords, areasRecords] = await Promise.all([
+      fetchPaginated(TABLE, "ID Empleado"),
+      fetchPaginated(TABLE_AREAS),
+    ]);
 
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${API_KEY}` },
-        cache: "no-store",
-      });
+    // Build Areas lookup: recordId → area name
+    const areaMap = new Map<string, string>();
+    for (const a of areasRecords) {
+      areaMap.set(a.id, (a.fields["Nombre del Area"] as string) || "");
+    }
 
-      if (!res.ok) {
-        console.error("[Vinculacion GET] Airtable error:", res.status, await res.text());
-        return NextResponse.json(
-          { error: "Error al consultar personal" },
-          { status: 500 }
-        );
-      }
+    // Resolve linked Areas for each employee
+    const personal = allRecords.map((r) => {
+      const areaIds = (r.fields["Areas"] as string[]) || [];
+      const areaName = areaIds.length > 0 ? (areaMap.get(areaIds[0]) || "") : "";
 
-      const data = await res.json();
-      allRecords.push(...data.records);
-      offset = data.offset;
-    } while (offset);
+      return {
+        id: r.id,
+        createdTime: r.createdTime,
+        fields: {
+          "ID Empleado": r.fields["ID Empleado"] || "",
+          "Nombre completo": r.fields["Nombre completo"] || "",
+          "Tipo Personal": r.fields["Tipo Personal"] || "",
+          "Estado de actividad": r.fields["Estado de actividad"] || "",
+          "Correo electrónico": r.fields["Correo electrónico"] || "",
+          "Teléfono": r.fields["Teléfono"] || "",
+          "Numero Documento": r.fields["Numero Documento"] || "",
+          "Cargo": r.fields["Cargo"] || (r.fields["Rol (from Rol)"] as string[] | undefined)?.[0] || "",
+          "Area": areaName,
+          "Fecha de Ingreso": r.fields["Fecha de incorporación"] || r.fields["Fecha de Ingreso"] || "",
+          "Fecha de Retiro": r.fields["Fecha de Retiro"] || "",
+        },
+      };
+    });
 
-    // Return each record with all relevant fields
-    const personal = allRecords.map((r) => ({
-      id: r.id,
-      createdTime: r.createdTime,
-      fields: {
-        "ID Empleado": r.fields["ID Empleado"] || "",
-        "Nombre completo": r.fields["Nombre completo"] || "",
-        "Tipo Personal": r.fields["Tipo Personal"] || "",
-        "Estado de actividad": r.fields["Estado de actividad"] || "",
-        "Correo electrónico": r.fields["Correo electrónico"] || "",
-        "Teléfono": r.fields["Teléfono"] || "",
-        "Numero Documento": r.fields["Numero Documento"] || "",
-        "Cargo": r.fields["Cargo"] || "",
-        "Area": r.fields["Area"] || r.fields["Área"] || "",
-        "Fecha de Ingreso": r.fields["Fecha de Ingreso"] || "",
-        "Fecha de Retiro": r.fields["Fecha de Retiro"] || "",
-      },
-    }));
-
-    return NextResponse.json({ personal });
+    return NextResponse.json({ personal, areas: areasRecords.map((a) => ({ id: a.id, name: (a.fields["Nombre del Area"] as string) || "" })) });
   } catch (err) {
     console.error("[Vinculacion GET] Error:", err);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
