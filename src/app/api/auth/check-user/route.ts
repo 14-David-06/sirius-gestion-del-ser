@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { escapeAirtableValue } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,9 +21,10 @@ export async function POST(req: NextRequest) {
     }
 
     const trimmedCedula = cedula.trim();
+    const safeCedula = escapeAirtableValue(trimmedCedula);
 
     // Buscar en Airtable por "Numero Documento" o "ID Empleado"
-    const filterFormula = `OR({Numero Documento}='${trimmedCedula}',{ID Empleado}='${trimmedCedula}')`;
+    const filterFormula = `OR({Numero Documento}='${safeCedula}',{ID Empleado}='${safeCedula}')`;
     const url = new URL(
       `https://api.airtable.com/v0/${env.airtable.baseNominaCore}/${env.airtable.tablePersonal}`
     );

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyJWT } from "@/lib/auth";
+import { getRoleFromPayload, hasMinRole, validateOneDrivePath } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,14 @@ export async function POST(req: NextRequest) {
   const auth = authenticate(req);
   if ("error" in auth) return auth.error;
 
+  const role = getRoleFromPayload(auth.payload);
+  if (!hasMinRole(role, "rrhh")) {
+    return NextResponse.json(
+      { error: "No tienes permisos para subir archivos" },
+      { status: 403 },
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -82,6 +91,14 @@ export async function POST(req: NextRequest) {
     if (!file || !recordId || !rutaCarpeta) {
       return NextResponse.json(
         { error: "Se requiere archivo, recordId y rutaCarpeta" },
+        { status: 400 },
+      );
+    }
+
+    // Validar ruta contra allowlist (prevenir path traversal)
+    if (!validateOneDrivePath(rutaCarpeta)) {
+      return NextResponse.json(
+        { error: "Ruta de carpeta no válida" },
         { status: 400 },
       );
     }

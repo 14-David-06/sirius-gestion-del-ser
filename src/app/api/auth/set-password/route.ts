@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { hashPassword, signJWT } from "@/lib/auth";
+import { escapeAirtableValue } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,9 +36,10 @@ export async function POST(req: NextRequest) {
     }
 
     const trimmedCedula = cedula.trim();
+    const safeCedula = escapeAirtableValue(trimmedCedula);
 
     // Buscar usuario
-    const filterFormula = `OR({Numero Documento}='${trimmedCedula}',{ID Empleado}='${trimmedCedula}')`;
+    const filterFormula = `OR({Numero Documento}='${safeCedula}',{ID Empleado}='${safeCedula}')`;
     const searchUrl = new URL(
       `https://api.airtable.com/v0/${env.airtable.baseNominaCore}/${env.airtable.tablePersonal}`
     );
@@ -103,11 +105,15 @@ export async function POST(req: NextRequest) {
 
     // Generar JWT (login automático después de crear contraseña)
     const nombre = (record.fields["Nombre completo"] as string) || "";
+    const nivelAcceso = (record.fields["Nivel_Acceso"] as string | undefined) || "";
+    const rol = nivelAcceso === "admin" || nivelAcceso === "rrhh" ? nivelAcceso : "empleado";
+
     const token = signJWT(
       {
         sub: record.id,
         cedula: trimmedCedula,
         nombre,
+        rol,
       },
       env.auth.jwtSecret
     );

@@ -64,12 +64,9 @@ export async function GET(req: NextRequest) {
 // ─── POST: Enviar solicitud al webhook ───────────────────────────────────────
 
 const WEBHOOKS: Record<string, string> = {
-  vacaciones:
-    "https://telegram-apps-u38879.vm.elestio.app/webhook/486d0663-7a90-4caa-acaf-6b06f77a32ae",
-  permiso:
-    "https://telegram-apps-u38879.vm.elestio.app/webhook/27034f5f-7e40-4703-aae1-cb245bafc821",
-  novedad_nomina:
-    "https://telegram-apps-u38879.vm.elestio.app/webhook/b135d8e7-8526-4df5-a1b8-abcb7f139679",
+  vacaciones: env.webhooks.vacaciones,
+  permiso: env.webhooks.permiso,
+  novedad_nomina: env.webhooks.novedadNomina,
 };
 
 export async function POST(req: NextRequest) {

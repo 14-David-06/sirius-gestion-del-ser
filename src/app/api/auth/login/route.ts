@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyPassword, signJWT } from "@/lib/auth";
+import { escapeAirtableValue, checkRateLimit } from "@/lib/security";
+import type { AppRole } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,8 +24,20 @@ export async function POST(req: NextRequest) {
 
     const trimmedCedula = cedula.trim();
 
+    // Rate limiting: 5 intentos por cédula en 15 minutos
+    const rl = checkRateLimit(`login:${trimmedCedula}`, 5, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      const retryMin = Math.ceil(rl.retryAfterMs / 60000);
+      return NextResponse.json(
+        { error: `Demasiados intentos. Intenta de nuevo en ${retryMin} minuto(s).` },
+        { status: 429 }
+      );
+    }
+
+    const safeCedula = escapeAirtableValue(trimmedCedula);
+
     // Buscar usuario
-    const filterFormula = `OR({Numero Documento}='${trimmedCedula}',{ID Empleado}='${trimmedCedula}')`;
+    const filterFormula = `OR({Numero Documento}='${safeCedula}',{ID Empleado}='${safeCedula}')`;
     const url = new URL(
       `https://api.airtable.com/v0/${env.airtable.baseNominaCore}/${env.airtable.tablePersonal}`
     );
@@ -70,13 +84,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generar JWT
+    // Generar JWT con rol desde Nomina Core
     const nombre = (record.fields["Nombre completo"] as string) || "";
+    const nivelAcceso = (record.fields["Nivel_Acceso"] as string | undefined) || "";
+    const rol: AppRole = nivelAcceso === "admin" || nivelAcceso === "rrhh"
+      ? nivelAcceso
+      : "empleado";
+
     const token = signJWT(
       {
         sub: record.id,
         cedula: trimmedCedula,
         nombre,
+        rol,
       },
       env.auth.jwtSecret
     );

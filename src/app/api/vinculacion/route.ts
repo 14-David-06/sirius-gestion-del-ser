@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyJWT } from "@/lib/auth";
+import { getRoleFromPayload, hasMinRole } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,11 @@ export async function POST(req: NextRequest) {
   const auth = authenticate(req);
   if ("error" in auth) return auth.error;
 
+  const role = getRoleFromPayload(auth.payload);
+  if (!hasMinRole(role, "rrhh")) {
+    return NextResponse.json({ error: "No tienes permisos para crear registros" }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
 
@@ -175,6 +181,11 @@ export async function PUT(req: NextRequest) {
   const auth = authenticate(req);
   if ("error" in auth) return auth.error;
 
+  const role = getRoleFromPayload(auth.payload);
+  if (!hasMinRole(role, "rrhh")) {
+    return NextResponse.json({ error: "No tienes permisos para editar registros" }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
 
@@ -236,6 +247,11 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const auth = authenticate(req);
   if ("error" in auth) return auth.error;
+
+  const role = getRoleFromPayload(auth.payload);
+  if (!hasMinRole(role, "admin")) {
+    return NextResponse.json({ error: "Solo administradores pueden eliminar registros" }, { status: 403 });
+  }
 
   try {
     const body = await req.json();

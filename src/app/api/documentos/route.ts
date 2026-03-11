@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyJWT } from "@/lib/auth";
+import { getRoleFromPayload, hasMinRole } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,14 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const auth = authenticate(req);
   if ("error" in auth) return auth.error;
+
+  const role = getRoleFromPayload(auth.payload);
+  if (!hasMinRole(role, "rrhh")) {
+    return NextResponse.json(
+      { error: "No tienes permisos para modificar documentos" },
+      { status: 403 }
+    );
+  }
 
   try {
     const body = await req.json();

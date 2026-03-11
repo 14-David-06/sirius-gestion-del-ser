@@ -24,7 +24,10 @@ type EnvKey =
   | "ADM_MICROSOFT_TENANT_ID"
   | "ADM_MICROSOFT_CLIENT_ID"
   | "ADM_MICROSOFT_CLIENT_SECRET"
-  | "ADM_MICROSOFT_EMAIL";
+  | "ADM_MICROSOFT_EMAIL"
+  | "WEBHOOK_VACACIONES"
+  | "WEBHOOK_PERMISO"
+  | "WEBHOOK_NOVEDAD_NOMINA";
 
 function getEnvVar(key: EnvKey): string {
   const value = process.env[key];
@@ -61,5 +64,10 @@ export const env = {
     clientId: getEnvVar("ADM_MICROSOFT_CLIENT_ID"),
     clientSecret: getEnvVar("ADM_MICROSOFT_CLIENT_SECRET"),
     email: getEnvVar("ADM_MICROSOFT_EMAIL"),
+  },
+  webhooks: {
+    vacaciones: getEnvVar("WEBHOOK_VACACIONES"),
+    permiso: getEnvVar("WEBHOOK_PERMISO"),
+    novedadNomina: getEnvVar("WEBHOOK_NOVEDAD_NOMINA"),
   },
 } as const;
