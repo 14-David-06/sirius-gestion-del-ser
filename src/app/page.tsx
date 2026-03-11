@@ -117,7 +117,7 @@ export default function LandingPage() {
               },
               {
                 icon: "📋",
-                title: "Solicitudes Centralizadas",
+                title: "Novedades de Nómina",
                 desc: "Vacaciones, permisos y novedades de nómina en un solo módulo unificado.",
               },
               {

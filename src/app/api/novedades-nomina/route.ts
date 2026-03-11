@@ -1,8 +1,8 @@
 /**
- * API de Solicitudes
+ * API de Novedades Nómina
  *
  * GET  → Retorna datos del empleado logueado desde Airtable Nomina Core
- * POST → Reenvía la solicitud al webhook correspondiente (vacaciones / permiso / novedad)
+ * POST → Reenvía la novedad al webhook correspondiente (vacaciones / permiso / novedad)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error("[Solicitudes GET] Airtable error:", res.status);
+      console.error("[Novedades GET] Airtable error:", res.status);
       return NextResponse.json(
         { error: "Error al consultar datos del empleado" },
         { status: 500 }
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       telefono: f["Teléfono"] || "",
     });
   } catch (error) {
-    console.error("[Solicitudes GET]", error);
+    console.error("[Novedades GET]", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (!webhookRes.ok) {
-        console.error("[Solicitudes POST novedad] Webhook error:", webhookRes.status);
+        console.error("[Novedades POST novedad] Webhook error:", webhookRes.status);
         return NextResponse.json(
           { error: "Error al enviar novedad" },
           { status: 500 }
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!webhookRes.ok) {
-      console.error("[Solicitudes POST] Webhook error:", webhookRes.status);
+      console.error("[Novedades POST] Webhook error:", webhookRes.status);
       return NextResponse.json(
         { error: "Error al enviar la solicitud" },
         { status: 500 }
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[Solicitudes POST]", error);
+    console.error("[Novedades POST]", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

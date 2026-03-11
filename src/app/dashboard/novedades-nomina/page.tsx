@@ -73,7 +73,7 @@ const labelClass = "block text-sm font-medium text-white/60 mb-2";
 // Component
 // ═════════════════════════════════════════════════════════════════════════════
 
-export default function SolicitudesPage() {
+export default function NovedadesNominaPage() {
   // ── Employee data ──────────────────────────────────────────────────────
   const [empleado, setEmpleado] = useState<EmpleadoInfo | null>(null);
   const [loadingEmpleado, setLoadingEmpleado] = useState(true);
@@ -126,7 +126,7 @@ export default function SolicitudesPage() {
 
   // Fetch employee data from Airtable via our API
   useEffect(() => {
-    fetch("/api/solicitudes")
+    fetch("/api/novedades-nomina")
       .then((r) => r.json())
       .then((d) => {
         if (d.error) throw new Error(d.error);
@@ -279,7 +279,7 @@ export default function SolicitudesPage() {
     setSubmitting(true);
     setResult(null);
     try {
-      const res = await fetch("/api/solicitudes", {
+      const res = await fetch("/api/novedades-nomina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,7 +356,7 @@ export default function SolicitudesPage() {
     setSubmitting(true);
     setResult(null);
     try {
-      const res = await fetch("/api/solicitudes", {
+      const res = await fetch("/api/novedades-nomina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -432,7 +432,7 @@ export default function SolicitudesPage() {
         formData.append("documento", novArchivo);
       }
 
-      const res = await fetch("/api/solicitudes", {
+      const res = await fetch("/api/novedades-nomina", {
         method: "POST",
         body: formData,
       });
@@ -488,7 +488,7 @@ export default function SolicitudesPage() {
               d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
             />
           </svg>
-          Tus datos (desde Nomina Core)
+          Datos del usuario en linea
         </h3>
         {loadingEmpleado ? (
           <div className="flex items-center gap-3 text-white/30">

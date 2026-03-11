@@ -61,6 +61,10 @@ export async function getRegistroCumplimiento() {
   return fetchAllRecords(baseGestionDelSer, "Registro_Cumplimiento");
 }
 
+export async function getConfiguracionHorarios() {
+  return fetchAllRecords(baseGestionDelSer, "Configuracion_Horarios");
+}
+
 // ── Sirius Nomina Core (datos relacionados) ──
 export async function getPersonal() {
   return fetchAllRecords(baseNominaCore, "Personal");
