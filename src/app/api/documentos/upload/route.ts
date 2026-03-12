@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const role = getRoleFromPayload(auth.payload);
-  if (!hasMinRole(role, "rrhh")) {
+  if (!hasMinRole(role, "Admin Depto")) {
     return NextResponse.json(
       { error: "No tienes permisos para subir archivos" },
       { status: 403 },

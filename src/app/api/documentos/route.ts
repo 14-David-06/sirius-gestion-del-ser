@@ -100,7 +100,7 @@ export async function PATCH(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const role = getRoleFromPayload(auth.payload);
-  if (!hasMinRole(role, "rrhh")) {
+  if (!hasMinRole(role, "Admin Depto")) {
     return NextResponse.json(
       { error: "No tienes permisos para modificar documentos" },
       { status: 403 }

@@ -84,12 +84,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generar JWT con rol desde Nomina Core
+    // Obtener Nivel_Acceso desde Roles y Permisos (linked desde Personal.Rol)
     const nombre = (record.fields["Nombre completo"] as string) || "";
-    const nivelAcceso = (record.fields["Nivel_Acceso"] as string | undefined) || "";
-    const rol: AppRole = nivelAcceso === "admin" || nivelAcceso === "rrhh"
-      ? nivelAcceso
-      : "empleado";
+    const rolIds = record.fields["Rol"] as string[] | undefined;
+    let rol: AppRole = "Lectura";
+    if (rolIds && rolIds.length > 0) {
+      const rolUrl = `https://api.airtable.com/v0/${env.airtable.baseNominaCore}/${env.airtable.tableRolesPermisos}/${rolIds[0]}`;
+      const rolRes = await fetch(rolUrl, {
+        headers: { Authorization: `Bearer ${env.airtable.apiKey}` }, cache: "no-store"
+      });
+      if (rolRes.ok) {
+        const rolData = await rolRes.json();
+        const nivelAcceso = rolData.fields?.["Nivel_Acceso"] as string | undefined;
+        const validRoles: AppRole[] = ["Super Admin", "Admin Depto", "Avanzado", "Est\u00e1ndar", "Lectura"];
+        if (nivelAcceso && validRoles.includes(nivelAcceso as AppRole)) {
+          rol = nivelAcceso as AppRole;
+        }
+      }
+    }
 
     const token = signJWT(
       {

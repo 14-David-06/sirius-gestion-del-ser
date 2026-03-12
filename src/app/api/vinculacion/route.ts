@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const role = getRoleFromPayload(auth.payload);
-  if (!hasMinRole(role, "rrhh")) {
+  if (!hasMinRole(role, "Admin Depto")) {
     return NextResponse.json({ error: "No tienes permisos para crear registros" }, { status: 403 });
   }
 
@@ -182,7 +182,7 @@ export async function PUT(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const role = getRoleFromPayload(auth.payload);
-  if (!hasMinRole(role, "rrhh")) {
+  if (!hasMinRole(role, "Admin Depto")) {
     return NextResponse.json({ error: "No tienes permisos para editar registros" }, { status: 403 });
   }
 
@@ -249,7 +249,7 @@ export async function DELETE(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   const role = getRoleFromPayload(auth.payload);
-  if (!hasMinRole(role, "admin")) {
+  if (!hasMinRole(role, "Super Admin")) {
     return NextResponse.json({ error: "Solo administradores pueden eliminar registros" }, { status: 403 });
   }
 

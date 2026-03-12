@@ -30,7 +30,7 @@ interface JWTPayload {
   sub: string; // record ID de Airtable
   cedula: string;
   nombre: string;
-  rol?: string; // "admin" | "rrhh" | "empleado"
+  rol?: string; // "Super Admin" | "Admin Depto" | "Avanzado" | "Estándar" | "Lectura"
   iat: number;
   exp: number;
 }

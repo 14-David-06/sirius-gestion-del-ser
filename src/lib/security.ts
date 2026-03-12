@@ -79,29 +79,42 @@ export function checkRateLimit(
 // 3. RBAC — Role-Based Access Control
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type AppRole = "admin" | "rrhh" | "empleado";
+export type AppRole = "Super Admin" | "Admin Depto" | "Avanzado" | "Estándar" | "Lectura";
 
 const ROLE_LEVEL: Record<AppRole, number> = {
-  admin: 3,
-  rrhh: 2,
-  empleado: 1,
+  "Super Admin": 5,
+  "Admin Depto": 4,
+  "Avanzado": 3,
+  "Estándar": 2,
+  "Lectura": 1,
 };
 
 /**
  * Comprueba si el rol del usuario es suficiente para el rol requerido.
- * admin ≥ rrhh ≥ empleado
+ * Super Admin ≥ Admin Depto ≥ Avanzado ≥ Estándar ≥ Lectura
  */
 export function hasMinRole(userRole: AppRole, requiredRole: AppRole): boolean {
   return ROLE_LEVEL[userRole] >= ROLE_LEVEL[requiredRole];
 }
 
+// Compatibilidad con tokens generados antes de la migración de roles
+const LEGACY_ROLE_MAP: Record<string, AppRole> = {
+  admin: "Super Admin",
+  rrhh: "Admin Depto",
+  empleado: "Estándar",
+};
+
 /**
- * Obtiene el AppRole de un payload JWT (backward-compatible con tokens sin rol).
+ * Obtiene el AppRole de un payload JWT.
+ * Usa el valor de Nivel_Acceso (Airtable) directamente.
+ * Acepta valores del sistema anterior (admin/rrhh/empleado) para tokens no renovados.
  */
 export function getRoleFromPayload(payload: { rol?: string }): AppRole {
   const r = payload.rol;
-  if (r === "admin" || r === "rrhh" || r === "empleado") return r;
-  return "empleado";
+  if (!r) return "Lectura";
+  if (r in ROLE_LEVEL) return r as AppRole;
+  if (r in LEGACY_ROLE_MAP) return LEGACY_ROLE_MAP[r];
+  return "Lectura";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
