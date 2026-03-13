@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(createUrl, {
       method: "POST",
       headers: airtableHeaders(),
-      body: JSON.stringify({ fields }),
+      body: JSON.stringify({ fields, typecast: true }),
     });
 
     if (!res.ok) {

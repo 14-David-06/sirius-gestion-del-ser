@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 
 interface Empleado {
   id: string;
+  idEmpleado: string;
   nombre: string;
   cedula: string;
   cargo: string;
   tipoPersonal: string;
+  area: string;
 }
 
 interface Horario {
@@ -53,7 +55,7 @@ function timeToSeconds(time: string): number {
   return h * 3600 + m * 60;
 }
 
-const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DIAS_SEMANA_FALLBACK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 const TIPOS_JORNADA = ["Completa", "Media Jornada", "Flexible", "Nocturna", "Rotativa"];
 
 export default function HorariosPage() {
@@ -89,7 +91,10 @@ export default function HorariosPage() {
   const [search, setSearch] = useState("");
 
   // Tab
-  const [tab, setTab] = useState<"asignar" | "historial">("asignar");
+  const [tab, setTab] = useState<"asignar" | "historial" | "cronograma">("asignar");
+
+  // Cronograma week navigation
+  const [weekOffset, setWeekOffset] = useState(0);
 
   async function fetchData() {
     setLoading(true);
@@ -108,6 +113,19 @@ export default function HorariosPage() {
   }
 
   useEffect(() => { fetchData(); }, []);
+
+  // Derive actual day names from loaded horarios (preserving Airtable's exact spellings)
+  const diasSemana = (() => {
+    const seen = new Set<string>();
+    for (const h of horarios) {
+      for (const d of h.dias) seen.add(d);
+    }
+    if (seen.size === 0) return DIAS_SEMANA_FALLBACK;
+    return DIAS_SEMANA_FALLBACK.map((fallback) => {
+      const match = [...seen].find((d) => d.toLowerCase().startsWith(fallback.slice(0, 4).toLowerCase()));
+      return match ?? fallback;
+    });
+  })();
 
   // Build lookup: cedula → active assignment
   const activeMap = new Map<string, Asignacion>();
@@ -158,6 +176,7 @@ export default function HorariosPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleadoRecordId: selectedEmpleado.id,
+          idEmpleado: selectedEmpleado.idEmpleado,
           cedula: selectedEmpleado.cedula,
           nombre: selectedEmpleado.nombre,
           horarioIds: selectedHorarios,
@@ -247,6 +266,65 @@ export default function HorariosPage() {
     }
   }
 
+  // ── Cronograma helpers ──────────────────────────────────────────────────────
+
+  const turnoConfig: Record<string, { label: string; hours: string; cls: string }> = {
+    M: { label: "Mañana",   hours: "AM",   cls: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
+    T: { label: "Tarde",    hours: "PM",   cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    N: { label: "Noche",    hours: "NOC",  cls: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
+    D: { label: "Descanso", hours: "—",    cls: "bg-white/[0.04] text-white/25 border-white/[0.06]" },
+  };
+
+  // Get the week's Monday based on offset
+  const weekStart = (() => {
+    const d = new Date();
+    const dow = d.getDay();
+    const diff = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff + weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  })();
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  // Map JS getDay() (0=Sun) to diasSemana index (0=Mon)
+  function getDayNameForDate(date: Date): string {
+    const js = date.getDay();
+    const idx = js === 0 ? 6 : js - 1;
+    return diasSemana[idx];
+  }
+
+  function getCellTurno(cedula: string, dayName: string): string {
+    const asig = activeMap.get(cedula);
+    if (!asig) return "D";
+    for (const hId of asig.horarioIds) {
+      const h = horarios.find((x) => x.id === hId);
+      if (h && h.dias.some((d) => d.toLowerCase() === dayName.toLowerCase())) {
+        const hr = h.horaEntrada / 3600;
+        if (hr >= 20 || hr < 6) return "N";
+        if (hr >= 12) return "T";
+        return "M";
+      }
+    }
+    return "D";
+  }
+
+  const formatWeekDate = (d: Date) =>
+    d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+
+  const isToday = (d: Date) => {
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+  };
+
+  const diasLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -327,6 +405,16 @@ export default function HorariosPage() {
           }`}
         >
           Historial de Asignaciones
+        </button>
+        <button
+          onClick={() => setTab("cronograma")}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            tab === "cronograma"
+              ? "bg-white/[0.15] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm"
+              : "text-white/50 hover:text-white hover:bg-white/[0.06] border border-transparent"
+          }`}
+        >
+          Cronograma Semanal
         </button>
       </div>
 
@@ -490,6 +578,175 @@ export default function HorariosPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {tab === "cronograma" && (
+        <div className="space-y-6">
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(turnoConfig).map(([key, t]) => (
+              <div key={key} className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-medium ${t.cls}`}>
+                <span className="text-sm font-extrabold">{key}</span>
+                <span className="font-semibold">{t.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Week navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setWeekOffset(weekOffset - 1)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.08] transition-all text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+              Anterior
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-white">
+                {formatWeekDate(weekDates[0])} — {formatWeekDate(weekDates[6])}
+              </p>
+              {weekOffset === 0 && (
+                <p className="text-xs text-white/30 mt-0.5">Semana actual</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  className="px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white/50 hover:text-white text-xs transition-all"
+                >
+                  Hoy
+                </button>
+              )}
+              <button
+                onClick={() => setWeekOffset(weekOffset + 1)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.08] transition-all text-sm"
+              >
+                Siguiente
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Cronograma grid */}
+          <div className="rounded-2xl bg-black/30 border border-white/[0.08] overflow-hidden backdrop-blur-sm shadow-xl shadow-black/20">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/[0.06]">
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-white/50 uppercase tracking-wider min-w-[180px]">
+                      Empleado
+                    </th>
+                    {diasLabels.map((dia, i) => (
+                      <th key={dia} className={`text-center px-3 py-4 text-xs font-semibold uppercase tracking-wider min-w-[90px] ${isToday(weekDates[i]) ? "text-sky-400/80" : "text-white/50"}`}>
+                        <div>{dia}</div>
+                        <div className={`text-[10px] font-normal mt-0.5 normal-case ${isToday(weekDates[i]) ? "text-sky-400/60" : "text-white/30"}`}>
+                          {formatWeekDate(weekDates[i])}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const conHorario = filtered.filter((e) => activeMap.has(e.cedula));
+                    // Group by area, sorted alphabetically
+                    const byArea = new Map<string, typeof conHorario>();
+                    for (const emp of conHorario) {
+                      const key = emp.area || "Sin área";
+                      if (!byArea.has(key)) byArea.set(key, []);
+                      byArea.get(key)!.push(emp);
+                    }
+                    const sortedAreas = [...byArea.keys()].sort((a, b) => a.localeCompare(b));
+                    if (sortedAreas.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={8} className="px-6 py-12 text-center text-sm text-white/30">
+                            No hay empleados con horario asignado
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return sortedAreas.flatMap((areaName) => {
+                      const emps = byArea.get(areaName)!;
+                      return [
+                        <tr key={`area-${areaName}`} className="border-b border-white/[0.04] bg-white/[0.02]">
+                          <td colSpan={8} className="px-6 py-2">
+                            <span className="text-[11px] font-bold text-white/50 uppercase tracking-widest">{areaName}</span>
+                            <span className="ml-2 text-[10px] text-white/20">{emps.length} empleado{emps.length !== 1 ? "s" : ""}</span>
+                          </td>
+                        </tr>,
+                        ...emps.map((emp) => (
+                          <tr key={emp.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                            <td className="px-6 py-4">
+                              <p className="text-sm font-medium text-white">{emp.nombre}</p>
+                              <p className="text-xs text-white/30">{emp.cargo}</p>
+                            </td>
+                            {weekDates.map((date, i) => {
+                              const dayName = getDayNameForDate(date);
+                              const turno = getCellTurno(emp.cedula, dayName);
+                              const cfg = turnoConfig[turno];
+                              return (
+                                <td key={i} className={`px-3 py-4 text-center ${isToday(date) ? "bg-sky-500/[0.04]" : ""}`}>
+                                  <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl border text-sm font-bold ${cfg.cls}`}>
+                                    {turno}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        )),
+                      ];
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Weekly stats */}
+          {(() => {
+            const conHorario = filtered.filter((e) => activeMap.has(e.cedula));
+            let cM = 0, cT = 0, cN = 0, cD = 0;
+            for (const emp of conHorario) {
+              for (const date of weekDates) {
+                const t = getCellTurno(emp.cedula, getDayNameForDate(date));
+                if (t === "M") cM++;
+                else if (t === "T") cT++;
+                else if (t === "N") cN++;
+                else cD++;
+              }
+            }
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="rounded-2xl bg-black/30 backdrop-blur-xl border border-sky-500/20 ring-1 ring-sky-500/10 p-5 shadow-lg shadow-black/10">
+                  <p className="text-[11px] text-sky-400/60 font-semibold uppercase tracking-wider">Turno Mañana</p>
+                  <p className="text-2xl font-extrabold text-sky-400 mt-1">{cM}</p>
+                  <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
+                </div>
+                <div className="rounded-2xl bg-black/30 backdrop-blur-xl border border-amber-500/20 ring-1 ring-amber-500/10 p-5 shadow-lg shadow-black/10">
+                  <p className="text-[11px] text-amber-400/60 font-semibold uppercase tracking-wider">Turno Tarde</p>
+                  <p className="text-2xl font-extrabold text-amber-400 mt-1">{cT}</p>
+                  <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
+                </div>
+                <div className="rounded-2xl bg-black/30 backdrop-blur-xl border border-violet-500/20 ring-1 ring-violet-500/10 p-5 shadow-lg shadow-black/10">
+                  <p className="text-[11px] text-violet-400/60 font-semibold uppercase tracking-wider">Turno Noche</p>
+                  <p className="text-2xl font-extrabold text-violet-400 mt-1">{cN}</p>
+                  <p className="text-xs text-white/20 mt-0.5">turnos esta semana</p>
+                </div>
+                <div className="rounded-2xl bg-black/30 backdrop-blur-xl border border-white/[0.12] ring-1 ring-white/[0.06] p-5 shadow-lg shadow-black/10">
+                  <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider">Descansos</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">{cD}</p>
+                  <p className="text-xs text-white/20 mt-0.5">días esta semana</p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -817,7 +1074,7 @@ export default function HorariosPage() {
                   Días Laborales *
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {DIAS_SEMANA.map((dia) => {
+                  {diasSemana.map((dia) => {
                     const selected = nuevoDias.includes(dia);
                     return (
                       <button

@@ -30,7 +30,8 @@ type EnvKey =
   | "ADM_MICROSOFT_EMAIL"
   | "WEBHOOK_VACACIONES"
   | "WEBHOOK_PERMISO"
-  | "WEBHOOK_NOVEDAD_NOMINA";
+  | "WEBHOOK_NOVEDAD_NOMINA"
+  | "ANTHROPIC_API_KEY";
 
 function getEnvVar(key: EnvKey): string {
   const value = process.env[key];
@@ -75,5 +76,8 @@ export const env = {
     vacaciones: getEnvVar("WEBHOOK_VACACIONES"),
     permiso: getEnvVar("WEBHOOK_PERMISO"),
     novedadNomina: getEnvVar("WEBHOOK_NOVEDAD_NOMINA"),
+  },
+  anthropic: {
+    apiKey: getEnvVar("ANTHROPIC_API_KEY"),
   },
 } as const;

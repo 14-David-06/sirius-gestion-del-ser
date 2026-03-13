@@ -23,6 +23,7 @@ const BASE_NOMINA = env.airtable.baseNominaCore;
 const TABLE_ASIGNACION = env.airtable.tableAsignacionHorario;
 const TABLE_HORARIOS = env.airtable.tableConfiguracionHorarios;
 const TABLE_PERSONAL = env.airtable.tablePersonal;
+const TABLE_AREAS = env.airtable.tableAreas;
 const API_KEY = env.airtable.apiKey;
 
 function airtableHeaders() {
@@ -70,11 +71,21 @@ export async function GET(req: NextRequest) {
   if ("error" in auth) return auth.error;
 
   try {
-    const [personal, horarios, asignaciones] = await Promise.all([
+    const [personal, horarios, asignaciones, areas] = await Promise.all([
       fetchPaginated(BASE_NOMINA, TABLE_PERSONAL),
       fetchPaginated(BASE_GESTION, TABLE_HORARIOS),
       fetchPaginated(BASE_GESTION, TABLE_ASIGNACION),
+      fetchPaginated(BASE_NOMINA, TABLE_AREAS),
     ]);
+
+    // Build area lookup: recordId → name
+    const areaMap = new Map<string, string>();
+    for (const a of areas) {
+      areaMap.set(a.id, (a.fields["Nombre del Area"] as string) || "");
+    }
+    console.log("[DEBUG areas] count:", areas.length, "keys:", [...areaMap.keys()].slice(0, 3));
+    const angi = personal.find((p) => (p.fields["ID Empleado"] as string)?.includes("0007"));
+    if (angi) console.log("[DEBUG angi] Areas field:", angi.fields["Areas"]);
 
     // Map horarios by record ID for quick lookup
     const horariosMap = new Map<string, Record<string, unknown>>();
@@ -117,10 +128,15 @@ export async function GET(req: NextRequest) {
       .filter((p) => p.fields["Estado de actividad"] === "Activo")
       .map((p) => ({
         id: p.id,
+        idEmpleado: (p.fields["ID Empleado"] as string) || "",
         nombre: (p.fields["Nombre completo"] as string) || "",
         cedula: (p.fields["Numero Documento"] as string) || "",
         cargo: (p.fields["Cargo"] as string) || "",
         tipoPersonal: (p.fields["Tipo Personal"] as string) || "",
+        area: (() => {
+          const ids = (p.fields["Areas"] as string[]) || [];
+          return ids.length > 0 ? (areaMap.get(ids[0]) || "Sin área") : "Sin área";
+        })(),
       }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
@@ -199,7 +215,7 @@ export async function POST(req: NextRequest) {
     const createUrl = `https://api.airtable.com/v0/${BASE_GESTION}/${encodeURIComponent(TABLE_ASIGNACION)}`;
 
     const fields: Record<string, unknown> = {
-      "ID Core Usuario Asignado": body.empleadoRecordId || "",
+      "ID Core Usuario Asignado": body.idEmpleado || body.empleadoRecordId || "",
       Cedula_Empleado: body.cedula,
       Nombre_Empleado: body.nombre,
       Horario: horarioIds,
