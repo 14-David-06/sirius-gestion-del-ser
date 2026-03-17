@@ -4,17 +4,23 @@
  * GET  → Retorna los registros de asistencia del empleado logueado
  *        (hoy + historial reciente). También devuelve info del empleado.
  * POST → Crea un nuevo registro de asistencia (entrada/salida) en Airtable.
+ *        Responde con `fueraHorario: true` cuando la marcación cae fuera del
+ *        horario asignado, para que el frontend active el formulario de novedad.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyJWT } from "@/lib/auth";
+import { escapeAirtableValue } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
 const TABLE_ASISTENCIA = "Registro_Asistencia";
 const BASE_ID = env.airtable.baseGestionDelSer;
+const BASE_NOMINA = env.airtable.baseNominaCore;
 const API_KEY = env.airtable.apiKey;
+const TABLE_ASIGNACION = env.airtable.tableAsignacionHorario;
+const TABLE_HORARIOS = env.airtable.tableConfiguracionHorarios;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +51,106 @@ function horaAhoraColombia(): string {
 /** ISO datetime for Airtable dateTime field (in Bogota tz, stored as UTC) */
 function isoAhoraColombia(): string {
   return new Date().toISOString();
+}
+
+/** Tolerance in minutes for schedule comparison (±10 min grace period) */
+const TOLERANCIA_MIN = 10;
+
+/**
+ * Fetches the active schedule assigned to an employee (by cédula) and
+ * checks whether `horaHH:MM` falls within the allowed window.
+ *
+ * Returns:
+ *  - `fueraHorario: false` when within schedule or no schedule exists.
+ *  - `fueraHorario: true`  when outside schedule, with context strings.
+ */
+async function checkFueraHorario(
+  cedula: string,
+  tipo: "Entrada" | "Salida",
+  horaHHMM: string  // "HH:MM"
+): Promise<{ fueraHorario: boolean; horarioNombre?: string; horarioEsperado?: string }> {
+  try {
+    const safeCedula = escapeAirtableValue(cedula);
+
+    // 1. Find active assignment for this employee
+    const asignUrl = new URL(
+      `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_ASIGNACION)}`
+    );
+    asignUrl.searchParams.set(
+      "filterByFormula",
+      `AND({Cedula_Empleado}='${safeCedula}',{Estado}='Activo')`
+    );
+    asignUrl.searchParams.set("maxRecords", "1");
+
+    const asignRes = await fetch(asignUrl.toString(), {
+      headers: { Authorization: `Bearer ${API_KEY}` },
+      cache: "no-store",
+    });
+    if (!asignRes.ok) return { fueraHorario: false };
+
+    const asignData = await asignRes.json();
+    if (!asignData.records?.length) return { fueraHorario: false };
+
+    const asignacion = asignData.records[0];
+    const horarioIds: string[] = (asignacion.fields["Horario"] as string[]) || [];
+    if (!horarioIds.length) return { fueraHorario: false };
+
+    // 2. Fetch schedule details (first linked schedule)
+    const horUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioIds[0]}`;
+    const horRes = await fetch(horUrl, {
+      headers: { Authorization: `Bearer ${API_KEY}` },
+      cache: "no-store",
+    });
+    if (!horRes.ok) return { fueraHorario: false };
+
+    const horario = await horRes.json();
+    const f = horario.fields;
+
+    // Hora_Entrada and Hora_Salida are stored as seconds from midnight (Airtable duration)
+    const entradaSeg = f["Hora_Entrada"] as number | null;
+    const salidaSeg  = f["Hora_Salida"]  as number | null;
+    if (entradaSeg == null || salidaSeg == null) return { fueraHorario: false };
+
+    const nombreHorario = (f["Nombre_Horario"] as string) || "Sin nombre";
+
+    // 3. Convert current time to seconds from midnight
+    const [hh, mm] = horaHHMM.split(":").map(Number);
+    const ahoraSeg = hh * 3600 + mm * 60;
+
+    // 4. Compare with ±tolerance window
+    const toleranciaSeg = TOLERANCIA_MIN * 60;
+    let fueraHorario = false;
+    let horarioEsperado = "";
+
+    const toHHMM = (seg: number) => {
+      const h = Math.floor(seg / 3600).toString().padStart(2, "0");
+      const m = Math.floor((seg % 3600) / 60).toString().padStart(2, "0");
+      return `${h}:${m}`;
+    };
+
+    if (tipo === "Entrada") {
+      // Alert if marked more than 10 min early OR more than 10 min late vs scheduled entry
+      fueraHorario =
+        ahoraSeg < entradaSeg - toleranciaSeg ||
+        ahoraSeg > entradaSeg + toleranciaSeg;
+      horarioEsperado = toHHMM(entradaSeg);
+    } else {
+      // Alert if marked more than 10 min early (salida anticipada) OR more than 10 min late
+      fueraHorario =
+        ahoraSeg < salidaSeg - toleranciaSeg ||
+        ahoraSeg > salidaSeg + toleranciaSeg;
+      horarioEsperado = toHHMM(salidaSeg);
+    }
+
+    return {
+      fueraHorario,
+      horarioNombre: nombreHorario,
+      horarioEsperado: `${tipo === "Entrada" ? "Entrada esperada" : "Salida esperada"} a las ${horarioEsperado}`,
+    };
+  } catch {
+    // Non-critical: if schedule check fails, allow the mark
+    return { fueraHorario: false };
+  }
 }
 
 // ─── GET: registros de asistencia del empleado ──────────────────────────────
@@ -188,6 +294,9 @@ export async function POST(req: NextRequest) {
     const hora = horaAhoraColombia();
     const fechaHora = isoAhoraColombia();
 
+    // ── Check if marcación is within the employee's assigned schedule ──────
+    const scheduleCheck = await checkFueraHorario(cedulaEmpleado, tipo as "Entrada" | "Salida", hora);
+
     // Create the record in Airtable
     const createUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_ASISTENCIA)}`;
 
@@ -219,6 +328,32 @@ export async function POST(req: NextRequest) {
     }
 
     const created = await createRes.json();
+
+    // ── If outside schedule, auto-save novedad silently (no UI shown) ──────
+    if (scheduleCheck.fueraHorario) {
+      const novUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(env.airtable.tableNovedadesAsistencia)}`;
+      const contexto = `${tipo} a las ${hora} — ${scheduleCheck.horarioEsperado ?? ""}${
+        scheduleCheck.horarioNombre ? ` (${scheduleCheck.horarioNombre})` : ""
+      }`;
+      fetch(novUrl, {
+        method: "POST",
+        headers: airtableHeaders(),
+        body: JSON.stringify({
+          fields: {
+            Nombre_Empleado:          nombreEmpleado,
+            Cedula_Empleado:          cedulaEmpleado,
+            Empleado_RecordID:        payload.sub,
+            Tipo_Novedad:             "Por fuera de horario",
+            Fecha_Novedad:            fecha,
+            Contexto_Asistencia:      contexto,
+            ID_Registro_Asistencia:   created.id,
+            Registro_Asistencia_Link: [created.id],
+            Estado:                   "Pendiente",
+            Usuario_Registro:         nombreEmpleado,
+          },
+        }),
+      }).catch((e) => console.error("[Asistencia POST] novedad auto-save:", e));
+    }
 
     return NextResponse.json({
       ok: true,

@@ -105,6 +105,15 @@ export default function DashboardLayout({
   const [loggingOut, setLoggingOut] = useState(false);
   const [toast, setToast] = useState<{ icon: string; cat: string; msg: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [clockStr, setClockStr] = useState(""); // empty on server, filled after mount
+
+  useEffect(() => {
+    const fmt = () =>
+      new Date().toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" });
+    setClockStr(fmt());
+    const id = setInterval(() => setClockStr(fmt()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const shown = sessionStorage.getItem("sirius_toast_shown");
@@ -207,10 +216,7 @@ export default function DashboardLayout({
           {/* Right side */}
           <div className="flex items-center gap-3 ml-auto">
             <span className="text-xs text-white/30 font-medium hidden sm:block">
-              {new Date().toLocaleString("es-CO", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
+              {clockStr}
             </span>
 
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/[0.12] backdrop-blur-sm">

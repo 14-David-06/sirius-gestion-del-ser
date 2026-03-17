@@ -11,14 +11,13 @@ interface EmpleadoInfo {
   area: string;
 }
 
-type TipoSolicitud = "vacaciones" | "permiso" | "novedad_nomina";
+type TipoSolicitud = "vacaciones" | "permiso";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TABS: { key: TipoSolicitud; label: string; icon: string }[] = [
   { key: "vacaciones", label: "Vacaciones", icon: "🏖️" },
   { key: "permiso", label: "Permiso", icon: "📋" },
-  { key: "novedad_nomina", label: "Novedad Nómina", icon: "💰" },
 ];
 
 const TIPOS_PERMISO = [
@@ -26,20 +25,6 @@ const TIPOS_PERMISO = [
   { value: "medico", label: "Médico" },
   { value: "calamidad", label: "Calamidad" },
   { value: "otro", label: "Otro" },
-];
-
-const TIPOS_NOVEDAD = [
-  "Permiso",
-  "Cambio de Horario",
-  "Fallo en la Máquina de Pirolisis",
-  "Horas Extra",
-  "Incapacidad Médica",
-  "Accidente",
-  "Licencia",
-  "Vacaciones",
-  "Facial Incompleto",
-  "Teletrabajo",
-  "Otra",
 ];
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -101,21 +86,9 @@ export default function NovedadesNominaPage() {
   const [perOtroTipo, setPerOtroTipo] = useState("");
   const [perMotivo, setPerMotivo] = useState("");
 
-  // Novedad
-  const [novTipo, setNovTipo] = useState("");
-  const [novOtroTipo, setNovOtroTipo] = useState("");
-  const [novArchivo, setNovArchivo] = useState<File | null>(null);
-
   // ── Signature canvas ───────────────────────────────────────────────────
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
-
-  // ── Voice recording ────────────────────────────────────────────────────
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   // ── Business days calculation ──────────────────────────────────────────
   const vacDias = calcDiasHabiles(vacFechaInicio, vacFechaFin);
@@ -220,41 +193,6 @@ export default function NovedadesNominaPage() {
     const isEmpty = !data.data.some((v) => v !== 0);
     if (isEmpty) return null;
     return canvas.toDataURL("image/png");
-  }
-
-  // ══════════════════════════════════════════════════════════════════════
-  // Voice recording
-  // ══════════════════════════════════════════════════════════════════════
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((t) => t.stop());
-      };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      alert(
-        "No se pudo acceder al micrófono. Verifica los permisos del navegador."
-      );
-    }
-  }
-
-  function stopRecording() {
-    if (mediaRecorderRef.current?.state !== "inactive") {
-      mediaRecorderRef.current?.stop();
-    }
-    setIsRecording(false);
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -399,71 +337,9 @@ export default function NovedadesNominaPage() {
     }
   }
 
-  async function handleSubmitNovedad() {
-    if (!empleado) return;
-    if (!novTipo) {
-      setResult({ ok: false, msg: "Selecciona el tipo de novedad." });
-      return;
-    }
-    if (novTipo === "Otra" && !novOtroTipo.trim()) {
-      setResult({ ok: false, msg: "Especifica el tipo de novedad." });
-      return;
-    }
-    if (!audioBlob) {
-      setResult({
-        ok: false,
-        msg: "Graba una nota de voz con la descripción de la novedad.",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    setResult(null);
-    try {
-      const formData = new FormData();
-      formData.append("empleado", empleado.nombre);
-      formData.append("cedula", empleado.cedula);
-      formData.append("cargo", empleado.cargo);
-      formData.append("area", empleado.area);
-      formData.append("tipoNovedad", novTipo);
-      formData.append("otroTipo", novTipo === "Otra" ? novOtroTipo : "");
-      formData.append("notaVoz", audioBlob, "nota-voz.webm");
-      if (novArchivo) {
-        formData.append("documento", novArchivo);
-      }
-
-      const res = await fetch("/api/novedades-nomina", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        setResult({
-          ok: true,
-          msg: "¡Reporte de novedad enviado correctamente! 🎉",
-        });
-        setNovTipo("");
-        setNovOtroTipo("");
-        setNovArchivo(null);
-        setAudioBlob(null);
-        setAudioUrl(null);
-      } else {
-        setResult({
-          ok: false,
-          msg: data.error || "Error al enviar el reporte.",
-        });
-      }
-    } catch {
-      setResult({ ok: false, msg: "Error de conexión. Intenta de nuevo." });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   function handleSubmit() {
     if (tipo === "vacaciones") handleSubmitVacaciones();
-    else if (tipo === "permiso") handleSubmitPermiso();
-    else handleSubmitNovedad();
+    else handleSubmitPermiso();
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -810,139 +686,6 @@ export default function NovedadesNominaPage() {
               >
                 Borrar Firma
               </button>
-            </div>
-          </>
-        )}
-
-        {/* ─── Novedad Nómina ─────────────────────────────────────────── */}
-        {tipo === "novedad_nomina" && (
-          <>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              💰 Reporte de Novedad de Nómina
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Tipo de Novedad *</label>
-                <select
-                  value={novTipo}
-                  onChange={(e) => setNovTipo(e.target.value)}
-                  className={selectClass}
-                  required
-                >
-                  <option value="" className="bg-gray-950">
-                    -- Seleccione --
-                  </option>
-                  {TIPOS_NOVEDAD.map((t) => (
-                    <option key={t} value={t} className="bg-gray-950">
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {novTipo === "Otra" && (
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>
-                    Especifique el tipo de novedad *
-                  </label>
-                  <input
-                    type="text"
-                    value={novOtroTipo}
-                    onChange={(e) => setNovOtroTipo(e.target.value)}
-                    placeholder="Escriba el tipo de novedad..."
-                    className={inputClass}
-                    required
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Voice recording */}
-            <div>
-              <label className={labelClass}>
-                Descripción de la Novedad (nota de voz) *
-              </label>
-              <div className="flex gap-3 mt-1">
-                <button
-                  type="button"
-                  onClick={startRecording}
-                  disabled={isRecording}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    isRecording
-                      ? "bg-white/[0.02] text-white/20 cursor-not-allowed"
-                      : "bg-white/[0.06] text-white/60 border border-white/[0.12] hover:bg-white/[0.1]"
-                  }`}
-                >
-                  🎙️ Grabar
-                </button>
-                <button
-                  type="button"
-                  onClick={stopRecording}
-                  disabled={!isRecording}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    !isRecording
-                      ? "bg-white/[0.02] text-white/20 cursor-not-allowed"
-                      : "bg-white/[0.08] text-white/70 border border-white/[0.15] hover:bg-white/[0.12]"
-                  }`}
-                >
-                  ⏹️ Detener
-                </button>
-              </div>
-
-              {/* Recording indicator */}
-              {isRecording && (
-                <div className="flex items-center justify-center gap-1.5 mt-4 py-3">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 h-5 bg-white/40 rounded-full animate-pulse"
-                      style={{
-                        animationDelay: `${i * 0.15}s`,
-                        animationDuration: "0.8s",
-                      }}
-                    />
-                  ))}
-                  <span className="ml-3 text-xs text-red-400 animate-pulse">
-                    Grabando...
-                  </span>
-                </div>
-              )}
-
-              {/* Audio preview */}
-              {audioUrl && !isRecording && (
-                <div className="mt-4">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <audio controls src={audioUrl} className="w-full rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAudioBlob(null);
-                      setAudioUrl(null);
-                    }}
-                    className="mt-2 px-4 py-2 text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-lg transition-all"
-                  >
-                    Eliminar grabación
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* File upload */}
-            <div>
-              <label className={labelClass}>
-                Documentación Adicional (opcional)
-              </label>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                onChange={(e) => setNovArchivo(e.target.files?.[0] || null)}
-                className="w-full text-sm text-white/60 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-white/[0.06] file:text-white/70 hover:file:bg-white/[0.1] file:cursor-pointer file:transition-all"
-              />
-              {novArchivo && (
-                <p className="text-xs text-white/30 mt-2">
-                  📎 {novArchivo.name} (
-                  {(novArchivo.size / 1024).toFixed(1)} KB)
-                </p>
-              )}
             </div>
           </>
         )}
