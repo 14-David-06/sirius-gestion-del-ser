@@ -35,3 +35,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          AIRTABLE_API_KEY: ci_placeholder
+          AIRTABLE_BASE_GESTION_DEL_SER: appCIplaceholder1
+          AIRTABLE_BASE_NOMINA_CORE: appCIplaceholder2
+          AIRTABLE_TABLE_NOMINA_PERSONAL: Personal
+          JWT_SECRET: ci-placeholder-secret-32-caracteres-ok
