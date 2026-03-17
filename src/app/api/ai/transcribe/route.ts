@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           content: [
             {
               type: "audio",
@@ -77,6 +76,7 @@ export async function POST(req: NextRequest) {
               type: "text",
               text: "Transcribe el audio anterior al español con precisión. Presenta únicamente el texto transcrito, sin encabezados, etiquetas ni comentarios adicionales.",
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ] as any,
         },
       ],

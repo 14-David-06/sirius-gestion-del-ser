@@ -1153,7 +1153,7 @@ fireWebhook(env.webhooks.vacaciones, {
 | `AIRTABLE_BASE_GESTION_DEL_SER` | Base ID | `appXXXXXXXX` |
 | `AIRTABLE_BASE_NOMINA_CORE` | Base ID | `appYYYYYYYY` |
 | `AIRTABLE_TABLE_NOMINA_PERSONAL` | Nombre de tabla | `Personal` |
-| `JWT_SECRET` | Secret para firmar JWTs | `mi-secret-muy-seguro` |
+| `JWT_SECRET` | Secret para firmar JWTs | `<minimo-32-caracteres-aleatorios>` |
 
 ### Opcionales (si no se configura, tendrán valor default o se desactivan funcionalidades)
 
@@ -1169,8 +1169,8 @@ fireWebhook(env.webhooks.vacaciones, {
 | `AIRTABLE_TABLE_NOVEDADES_ASISTENCIA` | Novedades | (env.ts) | `Novedades_Asistencia` |
 | `AIRTABLE_TABLE_SOLICITUDES_VACACIONES` | Vacaciones | (env.ts) | `Solicitudes_Vacaciones` |
 | `AIRTABLE_TABLE_SOLICITUDES_PERMISOS` | Permisos | (env.ts) | `Solicitudes_Permisos` |
-| `ADM_MICROSOFT_TENANT_ID` | Tenant Azure | (desactivado) | `12345678-1234-1234-1234-123456789012` |
-| `ADM_MICROSOFT_CLIENT_ID` | Client ID | (desactivado) | `87654321-4321-4321-4321-210987654321` |
+| `ADM_MICROSOFT_TENANT_ID` | Tenant Azure | (desactivado) | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
+| `ADM_MICROSOFT_CLIENT_ID` | Client ID | (desactivado) | `yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy` |
 | `ADM_MICROSOFT_CLIENT_SECRET` | Client secret | (desactivado) | `Abc123!@#...` |
 | `ADM_MICROSOFT_EMAIL` | Email para acceder OneDrive | (desactivado) | `admin@sirius.onmicrosoft.com` |
 | `WEBHOOK_VACACIONES` | Webhook n8n | (desactivado) | `https://n8n.sirius.com/webhook/vacaciones` |
@@ -1189,11 +1189,11 @@ AIRTABLE_TABLE_NOMINA_PERSONAL=Personal
 AIRTABLE_REVALIDATE_SECONDS=60
 
 # Auth
-JWT_SECRET=mi-secret-muy-seguro-con-30-caracteres-minimo
+JWT_SECRET=<minimo-32-caracteres-aleatorios-aqui>
 
 # Microsoft Graph (opcional)
-ADM_MICROSOFT_TENANT_ID=12345678-1234-1234-1234-123456789012
-ADM_MICROSOFT_CLIENT_ID=87654321-4321-4321-4321-210987654321
+ADM_MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ADM_MICROSOFT_CLIENT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
 ADM_MICROSOFT_CLIENT_SECRET=Abc123!@#...
 ADM_MICROSOFT_EMAIL=admin@sirius.onmicrosoft.com
 

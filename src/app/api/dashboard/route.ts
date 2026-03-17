@@ -9,8 +9,6 @@ import {
   getAreas,
   buildEmpleadoMap,
 } from "@/lib/airtable";
-import { env } from "@/lib/env";
-
 // Next.js requiere que revalidate sea una constante estática en build time.
 // Usamos el valor por defecto; para cambiarlo, actualiza AIRTABLE_REVALIDATE_SECONDS en .env.local
 // y la constante se lee en runtime dentro de fetchAllRecords.

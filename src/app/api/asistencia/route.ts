@@ -17,7 +17,6 @@ export const dynamic = "force-dynamic";
 
 const TABLE_ASISTENCIA = "Registro_Asistencia";
 const BASE_ID = env.airtable.baseGestionDelSer;
-const BASE_NOMINA = env.airtable.baseNominaCore;
 const API_KEY = env.airtable.apiKey;
 const TABLE_ASIGNACION = env.airtable.tableAsignacionHorario;
 const TABLE_HORARIOS = env.airtable.tableConfiguracionHorarios;

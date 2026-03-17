@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "npx tsc --noEmit --pretty 2>&1 | head -30",
+        "windows": "npx tsc --noEmit --pretty 2>&1 | Select-Object -First 30",
+        "timeout": 30,
+        "matcher": "replace_string_in_file|create_file|multi_replace_string_in_file"
+      }
+    ]
+  }
+}

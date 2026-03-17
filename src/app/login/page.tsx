@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<Step>("cedula");
   const [cedula, setCedula] = useState("");
   const [nombre, setNombre] = useState("");
-  const [recordId, setRecordId] = useState("");
+  const [, setRecordId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
