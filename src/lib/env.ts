@@ -27,6 +27,7 @@ type EnvKey =
   | "AIRTABLE_TABLE_NOVEDADES_ASISTENCIA"
   | "AIRTABLE_TABLE_SOLICITUDES_VACACIONES"
   | "AIRTABLE_TABLE_SOLICITUDES_PERMISOS"
+  | "AIRTABLE_TABLE_FESTIVOS_COLOMBIA"
   | "ADM_MICROSOFT_TENANT_ID"
   | "ADM_MICROSOFT_CLIENT_ID"
   | "ADM_MICROSOFT_CLIENT_SECRET"
@@ -34,6 +35,7 @@ type EnvKey =
   | "WEBHOOK_VACACIONES"
   | "WEBHOOK_PERMISO"
   | "WEBHOOK_NOVEDAD_NOMINA"
+  | "CRON_SECRET"
   | "ANTHROPIC_API_KEY";
 
 function getEnvVar(key: EnvKey): string {
@@ -64,6 +66,7 @@ export const env = {
     tableNovedadesAsistencia: getEnvVar("AIRTABLE_TABLE_NOVEDADES_ASISTENCIA"),
     tableSolicitudesVacaciones: getEnvVar("AIRTABLE_TABLE_SOLICITUDES_VACACIONES"),
     tableSolicitudesPermisos: getEnvVar("AIRTABLE_TABLE_SOLICITUDES_PERMISOS"),
+    tableFestivosColombia: getEnvVar("AIRTABLE_TABLE_FESTIVOS_COLOMBIA"),
     revalidateSeconds: parseInt(
       getEnvVar("AIRTABLE_REVALIDATE_SECONDS") || "60",
       10
@@ -85,5 +88,8 @@ export const env = {
   },
   anthropic: {
     apiKey: getEnvVar("ANTHROPIC_API_KEY"),
+  },
+  cron: {
+    cronSecret: getEnvVar("CRON_SECRET"),
   },
 } as const;

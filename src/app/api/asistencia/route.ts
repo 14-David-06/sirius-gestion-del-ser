@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyJWT } from "@/lib/auth";
-import { escapeAirtableValue } from "@/lib/security";
+import { escapeAirtableValue, checkRateLimit } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +52,8 @@ function isoAhoraColombia(): string {
   return new Date().toISOString();
 }
 
-/** Tolerance in minutes for schedule comparison (±10 min grace period) */
-const TOLERANCIA_MIN = 10;
+/** Tolerance in minutes for schedule comparison (±60 min grace period) */
+const TOLERANCIA_MIN = 60;
 
 /**
  * Fetches the active schedule assigned to an employee (by cédula) and
@@ -116,8 +116,8 @@ async function checkFueraHorario(
     const [hh, mm] = horaHHMM.split(":").map(Number);
     const ahoraSeg = hh * 3600 + mm * 60;
 
-    // 4. Compare with ±tolerance window
-    const toleranciaSeg = TOLERANCIA_MIN * 60;
+    // 4. Compare with ±tolerance window (dynamic from schedule field, fallback to constant)
+    const toleranciaSeg = ((f["Tolerancia_Min"] as number) ?? TOLERANCIA_MIN) * 60;
     let fueraHorario = false;
     let horarioEsperado = "";
 
@@ -150,6 +150,15 @@ async function checkFueraHorario(
     // Non-critical: if schedule check fails, allow the mark
     return { fueraHorario: false };
   }
+}
+
+/**
+ * Dispara un webhook en background sin bloquear la respuesta.
+ * Nunca lanza — solo registra errores en consola.
+ */
+function fireWebhook(url: string, init: RequestInit): void {
+  if (!url) return;
+  fetch(url, init).catch((e) => console.error("[Webhook fire]", e));
 }
 
 // ─── GET: registros de asistencia del empleado ──────────────────────────────
@@ -262,6 +271,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
+    // Change D — rate limiting: max 10 marcaciones por empleado en ventana de 5 minutos
+    const rl = checkRateLimit(`asistencia:${payload.sub}`, 10, 5 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas marcaciones. Intenta en unos minutos." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const tipo = body.tipo as string; // "Entrada" or "Salida"
     const ubicacion = (body.ubicacion as string) || "Plataforma Web";
@@ -296,6 +314,21 @@ export async function POST(req: NextRequest) {
     // ── Check if marcación is within the employee's assigned schedule ──────
     const scheduleCheck = await checkFueraHorario(cedulaEmpleado, tipo as "Entrada" | "Salida", hora);
 
+    // Change C — si fuera de horario y no hay motivo, pedir motivo al frontend
+    if (scheduleCheck.fueraHorario) {
+      const motivo = (body.motivo as string | undefined)?.trim();
+      if (!motivo) {
+        const contextoMsg =
+          scheduleCheck.horarioEsperado
+            ? `Horario esperado: ${scheduleCheck.horarioEsperado.replace(/^.*?las /, "")}`
+            : "Marcación fuera de horario";
+        return NextResponse.json(
+          { ok: false, requiereMotivo: true, contexto: contextoMsg },
+          { status: 200 }
+        );
+      }
+    }
+
     // Create the record in Airtable
     const createUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_ASISTENCIA)}`;
 
@@ -328,30 +361,50 @@ export async function POST(req: NextRequest) {
 
     const created = await createRes.json();
 
-    // ── If outside schedule, auto-save novedad silently (no UI shown) ──────
+    // ── Si fuera de horario (motivo ya validado), crear novedad y disparar webhook ──
     if (scheduleCheck.fueraHorario) {
+      const motivo = (body.motivo as string).trim();
       const novUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(env.airtable.tableNovedadesAsistencia)}`;
       const contexto = `${tipo} a las ${hora} — ${scheduleCheck.horarioEsperado ?? ""}${
         scheduleCheck.horarioNombre ? ` (${scheduleCheck.horarioNombre})` : ""
       }`;
+      const novFields = {
+        Nombre_Empleado:          nombreEmpleado,
+        Cedula_Empleado:          cedulaEmpleado,
+        Empleado_RecordID:        payload.sub,
+        Tipo_Novedad:             "Por fuera de horario",
+        Fecha_Novedad:            fecha,
+        Descripcion:              motivo,
+        Contexto_Asistencia:      contexto,
+        ID_Registro_Asistencia:   created.id,
+        Registro_Asistencia_Link: [created.id],
+        Estado:                   "Pendiente",
+        Usuario_Registro:         nombreEmpleado,
+      };
+      // Non-blocking: crear novedad
       fetch(novUrl, {
         method: "POST",
         headers: airtableHeaders(),
+        body: JSON.stringify({ fields: novFields }),
+      }).catch((e) => console.error("[Asistencia POST] novedad save:", e));
+
+      // Non-blocking: webhook n8n
+      fireWebhook(env.webhooks.novedadNomina, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fields: {
-            Nombre_Empleado:          nombreEmpleado,
-            Cedula_Empleado:          cedulaEmpleado,
-            Empleado_RecordID:        payload.sub,
-            Tipo_Novedad:             "Por fuera de horario",
-            Fecha_Novedad:            fecha,
-            Contexto_Asistencia:      contexto,
-            ID_Registro_Asistencia:   created.id,
-            Registro_Asistencia_Link: [created.id],
-            Estado:                   "Pendiente",
-            Usuario_Registro:         nombreEmpleado,
-          },
+          empleado:             nombreEmpleado,
+          cedula:               cedulaEmpleado,
+          empleadoRecordId:     payload.sub,
+          tipo,
+          fecha,
+          hora,
+          motivo,
+          contexto,
+          registroAsistenciaId: created.id,
+          tableName:            "Novedades_Asistencia",
         }),
-      }).catch((e) => console.error("[Asistencia POST] novedad auto-save:", e));
+      });
     }
 
     return NextResponse.json({

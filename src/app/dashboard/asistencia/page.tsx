@@ -28,6 +28,9 @@ export default function AsistenciaPage() {
   const [marcando, setMarcando] = useState(false);
   const [marcaExitosa, setMarcaExitosa] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requiereMotivo, setRequiereMotivo] = useState(false);
+  const [motivoTexto, setMotivoTexto] = useState("");
+  const [contextoFueraHorario, setContextoFueraHorario] = useState<string | null>(null);
 
   // Real-time clock
   useEffect(() => {
@@ -80,25 +83,42 @@ export default function AsistenciaPage() {
   const siguienteTipo: "Entrada" | "Salida" =
     !ultimoRegistroHoy || ultimoRegistroHoy.tipo === "Salida" ? "Entrada" : "Salida";
 
-  async function marcarAsistencia() {
+  async function marcarAsistencia(motivo?: string) {
     setMarcando(true);
     setError(null);
     try {
+      const body: Record<string, string> = {
+        tipo: siguienteTipo,
+        ubicacion: "Plataforma Web",
+      };
+      if (motivo) {
+        body.motivo = motivo;
+      }
+
       const res = await fetch("/api/asistencia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipo: siguienteTipo,
-          ubicacion: "Plataforma Web",
-        }),
+        body: JSON.stringify(body),
       });
 
+      const data = await res.json();
+
+      // El servidor indica que se requiere motivo por marcación fuera de horario
+      if (res.status === 428 || data.requiereMotivo === true) {
+        setRequiereMotivo(true);
+        setContextoFueraHorario(data.contexto ?? null);
+        return;
+      }
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Error al registrar asistencia");
       }
 
-      const data = await res.json();
+      // Éxito — limpiar estado de motivo si venía de flujo fuera de horario
+      setRequiereMotivo(false);
+      setMotivoTexto("");
+      setContextoFueraHorario(null);
+
       setMarcaExitosa(
         siguienteTipo === "Entrada"
           ? `¡Entrada registrada a las ${data.registro.hora}!`
@@ -188,7 +208,7 @@ export default function AsistenciaPage() {
 
           <div className="mt-8">
             <button
-              onClick={marcarAsistencia}
+              onClick={() => marcarAsistencia()}
               disabled={marcando}
               className={`relative px-12 py-5 rounded-2xl text-lg font-bold transition-all duration-300 disabled:opacity-60 cursor-pointer ${
                 siguienteTipo === "Entrada"
@@ -229,6 +249,77 @@ export default function AsistenciaPage() {
           )}
         </div>
       </div>
+
+      {/* Modal justificación fuera de horario */}
+      {requiereMotivo && (
+        <div className="rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-white">Marcación fuera de horario</h3>
+              <p className="text-sm text-white/60 mt-1">
+                Tu marcación está fuera del horario establecido. Por favor justifica el motivo.
+              </p>
+            </div>
+          </div>
+
+          {contextoFueraHorario && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/[0.15]">
+              <svg className="w-4 h-4 text-amber-400/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+              <span className="text-xs text-amber-300/80 font-medium">{contextoFueraHorario}</span>
+            </div>
+          )}
+
+          <div>
+            <textarea
+              value={motivoTexto}
+              onChange={(e) => setMotivoTexto(e.target.value)}
+              rows={3}
+              placeholder="Describe el motivo de la marcación fuera de horario..."
+              className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all placeholder:text-white/20 resize-none backdrop-blur-sm"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => marcarAsistencia(motivoTexto)}
+              disabled={marcando || motivoTexto.trim().length === 0}
+              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-all"
+            >
+              {marcando ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  Confirmar con justificación
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setRequiereMotivo(false);
+                setMotivoTexto("");
+                setContextoFueraHorario(null);
+              }}
+              disabled={marcando}
+              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.10] text-white/60 hover:text-white rounded-xl text-sm font-medium transition-all disabled:opacity-40"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Today's Stats */}
       <div className="grid grid-cols-3 gap-4">
