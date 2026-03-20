@@ -101,8 +101,28 @@ const records = await fetchAllRecords(baseId, tableName);
 ### JWT Auth (sin dependencias externas)
 ```typescript
 // src/lib/auth.ts
-const token = signJWT({ sub, cedula, nombre, rol }, secret);
+const token = signJWT({ sub, idCore, cedula, nombre, rol }, secret);
 const payload = verifyJWT(token, secret); // null si inválido/expirado
+```
+
+### ⚠️ Identificador único de empleado — Arquitectura crítica
+
+El identificador canónico de un empleado en Sirius es **`SIRIUS-PER-XXXX`**, almacenado en el campo `ID Empleado` de la tabla `Personal` (base Nómina Core).
+
+```
+payload.sub     → Airtable record ID (recXXX)    → SOLO para fetch de tabla Personal
+payload.idCore  → SIRIUS-PER-XXXX                → FK entre tablas de Gestión del Ser
+payload.cedula  → Número de documento            → Validaciones secundarias
+```
+
+**Regla:** NUNCA usar `payload.sub` como FK en tablas distintas a `Personal`.
+Siempre usar `payload.idCore` para el campo `{ID Core Usuario Asignado}` y cualquier referencia cruzada entre módulos.
+
+Si `payload.idCore` no está disponible (sesión emitida antes del 2026-03-18), hacer fallback:
+```typescript
+// Fallback para sesiones antiguas
+const personalRecord = await fetch(`/v0/${baseNominaCore}/Personal/${payload.sub}`);
+const idCore = personalRecord.fields["ID Empleado"]; // SIRIUS-PER-XXXX
 ```
 
 ## Comandos

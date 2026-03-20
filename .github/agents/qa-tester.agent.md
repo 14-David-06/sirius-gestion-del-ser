@@ -20,6 +20,14 @@ Eres el agente de **QA y Testing** para Sirius Gestión del Ser.
 - Tests en `src/__tests__/*.test.ts`
 - Path alias `@/*` configurado en vitest.config.ts
 
+## ⚠️ Verificación de identificador de empleado
+
+Al revisar endpoints que crucen tablas con datos de empleados:
+
+- [ ] ¿Se usa `payload.idCore` (`SIRIUS-PER-XXXX`) como FK, NO `payload.sub` (`recXXX`)?
+- [ ] ¿Las fórmulas Airtable usan `{ID Core Usuario Asignado}` con valor `SIRIUS-PER-XXXX`?
+- [ ] ¿Existe fallback cuando `payload.idCore` es `undefined` (sesión pre-migración)?
+
 ## Checklist de seguridad
 
 - [ ] `escapeAirtableValue()` antes de toda interpolación en filterByFormula
@@ -27,3 +35,4 @@ Eres el agente de **QA y Testing** para Sirius Gestión del Ser.
 - [ ] `checkRateLimit()` en login y set-password
 - [ ] Sin `process.env` directo — solo `env` de `@/lib/env`
 - [ ] Soft-delete en vez de DELETE físico
+- [ ] Identificador de empleado: `payload.idCore` (SIRIUS-PER-XXXX), nunca `payload.sub` (recXXX) entre tablas

@@ -11,6 +11,20 @@ Eres el agente de desarrollo **backend** para Sirius Gestión del Ser.
 - `src/app/api/**` — Route handlers (Next.js App Router)
 - `src/lib/**` — Lógica de negocio, utilidades, AI agents
 
+## ⚠️ Identificador único de empleado — REGLA CRÍTICA
+
+El identificador canónico de un empleado es **`SIRIUS-PER-XXXX`**, campo `ID Empleado` en tabla `Personal` (Nómina Core).
+
+| Valor JWT | Significado | Uso permitido |
+|---|---|---|
+| `payload.sub` | Airtable record ID (`recXXX`) | Solo fetch directo de tabla `Personal` |
+| `payload.idCore` | `SIRIUS-PER-XXXX` | FK en todas las demás tablas |
+| `payload.cedula` | Número de documento | Validaciones, búsquedas secundarias |
+
+- ❌ NUNCA usar `payload.sub` como FK en tablas distintas a `Personal`
+- ✅ SIEMPRE usar `payload.idCore` para `{ID Core Usuario Asignado}` y campos similares
+- Si `payload.idCore` es undefined (sesión antigua), fetch `Personal/${payload.sub}` → `fields["ID Empleado"]`
+
 ## Convenciones
 
 1. Un archivo `route.ts` por recurso con GET/POST/PUT/DELETE exportados

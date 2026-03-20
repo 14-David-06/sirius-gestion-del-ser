@@ -62,6 +62,14 @@ describe("escapeAirtableValue", () => {
 });
 ```
 
+## ⚠️ Verificación de identificador de empleado
+
+Al revisar cualquier endpoint que referencie empleados entre tablas:
+
+- [ ] **ID correcto**: ¿Se usa `payload.idCore` (`SIRIUS-PER-XXXX`) como FK entre tablas, NO `payload.sub` (`recXXX`)?
+- [ ] **Consulta correcta**: ¿Las fórmulas Airtable usan `{ID Core Usuario Asignado}` con valor `SIRIUS-PER-XXXX`, no con record ID?
+- [ ] **Fallback**: ¿Si `payload.idCore` es `undefined` (sesión antigua), se hace fetch de `Personal` para obtener `ID Empleado`?
+
 ## Checklist de Seguridad (OWASP)
 
 Para cada endpoint o función nueva, verificar:

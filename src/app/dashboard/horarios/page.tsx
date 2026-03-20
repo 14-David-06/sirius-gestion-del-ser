@@ -377,11 +377,6 @@ export default function HorariosPage() {
           <p className="text-2xl font-extrabold text-emerald-400 mt-1">{totalAsignados}</p>
           <p className="text-xs text-white/20 mt-0.5">asignaciones activas</p>
         </div>
-        <div className="rounded-2xl bg-black/30 backdrop-blur-xl border border-amber-500/20 ring-1 ring-amber-500/10 p-5 shadow-lg shadow-black/10">
-          <p className="text-[11px] text-amber-400/60 font-semibold uppercase tracking-wider">Sin Horario</p>
-          <p className="text-2xl font-extrabold text-amber-400 mt-1">{sinAsignar}</p>
-          <p className="text-xs text-white/20 mt-0.5">pendientes de asignar</p>
-        </div>
       </div>
 
       {/* Tabs */}

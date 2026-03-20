@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Obtener Nivel_Acceso desde Roles y Permisos (linked desde Personal.Rol)
     const nombre = (record.fields["Nombre completo"] as string) || "";
+    const idCore = (record.fields["ID Empleado"] as string) || undefined;
     const rolIds = record.fields["Rol"] as string[] | undefined;
     let rol: AppRole = "Lectura";
     if (rolIds && rolIds.length > 0) {
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
     const token = signJWT(
       {
         sub: record.id,
+        idCore,
         cedula: trimmedCedula,
         nombre,
         rol,

@@ -26,6 +26,22 @@ Archivos bajo tu responsabilidad:
 - JWT auth custom (HMAC-SHA256, sin librerías externas)
 - bcryptjs para hashing de contraseñas
 
+## ⚠️ Identificador único de empleado — REGLA CRÍTICA
+
+El identificador canónico de un empleado en Sirius es **`SIRIUS-PER-XXXX`**, almacenado en el campo `ID Empleado` de la tabla `Personal` (base Nómina Core).
+
+| Valor | Fuente | Uso correcto |
+|---|---|---|
+| `payload.sub` | JWT | **Solo** para fetch directo de la tabla `Personal` por record ID de Airtable |
+| `payload.idCore` | JWT | FK entre módulos — campo `ID Core Usuario Asignado` en otras tablas |
+| `payload.cedula` | JWT | Validaciones secundarias, nunca como FK entre tablas |
+
+**Reglas:**
+- ❌ NUNCA usar `payload.sub` (record ID `recXXX`) como FK en tablas distintas a `Personal`
+- ✅ SIEMPRE usar `payload.idCore` (formato `SIRIUS-PER-XXXX`) para referenciar un empleado en otras tablas
+- Si `payload.idCore` no está disponible (sesión antigua), fetch `Personal/${payload.sub}` y leer `fields["ID Empleado"]`
+- Los nuevos campos de asignación que referencien empleados deben usar el campo `ID Core Usuario Asignado` con valor `SIRIUS-PER-XXXX`
+
 ## Convenciones
 
 1. **Un archivo `route.ts` por recurso** con funciones exportadas GET/POST/PUT/DELETE

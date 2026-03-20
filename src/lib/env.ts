@@ -28,6 +28,7 @@ type EnvKey =
   | "AIRTABLE_TABLE_SOLICITUDES_VACACIONES"
   | "AIRTABLE_TABLE_SOLICITUDES_PERMISOS"
   | "AIRTABLE_TABLE_FESTIVOS_COLOMBIA"
+  | "AIRTABLE_TABLE_CAMBIOS_HORARIO"
   | "ADM_MICROSOFT_TENANT_ID"
   | "ADM_MICROSOFT_CLIENT_ID"
   | "ADM_MICROSOFT_CLIENT_SECRET"
@@ -67,6 +68,7 @@ export const env = {
     tableSolicitudesVacaciones: getEnvVar("AIRTABLE_TABLE_SOLICITUDES_VACACIONES"),
     tableSolicitudesPermisos: getEnvVar("AIRTABLE_TABLE_SOLICITUDES_PERMISOS"),
     tableFestivosColombia: getEnvVar("AIRTABLE_TABLE_FESTIVOS_COLOMBIA"),
+    tableCambiosHorario: getEnvVar("AIRTABLE_TABLE_CAMBIOS_HORARIO"),
     revalidateSeconds: parseInt(
       getEnvVar("AIRTABLE_REVALIDATE_SECONDS") || "60",
       10

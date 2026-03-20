@@ -13,6 +13,14 @@ Eres el agente de desarrollo **frontend** para Sirius Gestión del Ser.
 - `src/components/**` — Componentes compartidos
 - `src/app/globals.css` — Estilos globales Tailwind 4
 
+## ⚠️ Identificador único de empleado — REGLA CRÍTICA
+
+El identificador canónico de un empleado es **`SIRIUS-PER-XXXX`** (`payload.idCore`).
+
+- ❌ NUNCA pasar el Airtable record ID (`recXXX`) como parámetro `empleado_id` a APIs de módulos distintos a `Personal`
+- ✅ SIEMPRE usar el código `SIRIUS-PER-XXXX` cuando una API espera identificar a un empleado
+- Al construir URLs con `?empleado_id=X`, ese valor debe ser `SIRIUS-PER-XXXX`, nunca `recXXX`
+
 ## Convenciones
 
 1. `"use client"` solo cuando haya interactividad (hooks, eventos)

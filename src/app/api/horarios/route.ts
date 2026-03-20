@@ -25,6 +25,7 @@ const TABLE_HORARIOS = env.airtable.tableConfiguracionHorarios;
 const TABLE_PERSONAL = env.airtable.tablePersonal;
 const TABLE_AREAS = env.airtable.tableAreas;
 const API_KEY = env.airtable.apiKey;
+const CEDULAS_EXCLUIDAS_EN_HORARIOS = new Set(["123456"]);
 
 function airtableHeaders() {
   return {
@@ -123,9 +124,16 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Build empleados list
+    // Build empleados list (excluir contratistas y registros de prueba solo en módulo de horarios)
     const empleados = personal
-      .filter((p) => p.fields["Estado de actividad"] === "Activo")
+      .filter((p) => {
+        const cedula = String(p.fields["Numero Documento"] || "");
+        return (
+          p.fields["Estado de actividad"] === "Activo" &&
+          p.fields["Tipo Personal"] !== "Contratista" &&
+          !CEDULAS_EXCLUIDAS_EN_HORARIOS.has(cedula)
+        );
+      })
       .map((p) => ({
         id: p.id,
         idEmpleado: (p.fields["ID Empleado"] as string) || "",

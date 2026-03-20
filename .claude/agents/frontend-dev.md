@@ -25,6 +25,14 @@ Archivos bajo tu responsabilidad:
 - Glass-morphism UI design pattern
 - Path alias: `@/*` → `./src/*`
 
+## ⚠️ Identificador único de empleado — REGLA CRÍTICA
+
+El identificador canónico de un empleado es **`SIRIUS-PER-XXXX`** (`payload.idCore` en el JWT).
+
+- ❌ NUNCA enviar `payload.sub` (record ID `recXXX`) como parámetro de empleado a APIs de otros módulos
+- ✅ SIEMPRE usar `payload.idCore` o parámetros que el backend resuelva como `SIRIUS-PER-XXXX`
+- Cuando el frontend pase un `empleado_id` a un endpoint, ese ID debe ser el código `SIRIUS-PER-XXXX`, no el record ID de Airtable
+
 ## Convenciones
 
 1. **Server Components por defecto** — solo usar `"use client"` cuando sea necesario (interactividad, hooks)

@@ -190,14 +190,15 @@ export async function GET(req: NextRequest) {
       cedulaEmpleado = empRecord.fields["Numero Documento"] || cedulaEmpleado;
     }
 
-    // Fetch attendance records for this employee (filter by Empleado_RecordID)
+    // Fetch attendance records for this employee (filter by Cedula)
     // Sort by Fecha_Hora descending to get most recent first
     const url = new URL(
       `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_ASISTENCIA)}`
     );
+    const safeCedula = escapeAirtableValue(cedulaEmpleado);
     url.searchParams.set(
       "filterByFormula",
-      `{Empleado_RecordID}='${payload.sub}'`
+      `{Cedula}='${safeCedula}'`
     );
     url.searchParams.set("sort[0][field]", "Fecha_Hora");
     url.searchParams.set("sort[0][direction]", "desc");
@@ -337,7 +338,6 @@ export async function POST(req: NextRequest) {
       headers: airtableHeaders(),
       body: JSON.stringify({
         fields: {
-          Empleado_RecordID: payload.sub,
           Nombre_Empleado: nombreEmpleado,
           Cedula: cedulaEmpleado,
           Tipo: tipo,
@@ -371,7 +371,6 @@ export async function POST(req: NextRequest) {
       const novFields = {
         Nombre_Empleado:          nombreEmpleado,
         Cedula_Empleado:          cedulaEmpleado,
-        Empleado_RecordID:        payload.sub,
         Tipo_Novedad:             "Por fuera de horario",
         Fecha_Novedad:            fecha,
         Descripcion:              motivo,

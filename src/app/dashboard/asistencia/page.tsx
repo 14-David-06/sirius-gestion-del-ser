@@ -1,6 +1,34 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+// Web Speech API — types para navegadores compatibles (Chrome, Edge)
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+  }
+}
 
 interface RegistroAsistencia {
   id: string;
@@ -18,6 +46,22 @@ interface EmpleadoInfo {
   cedula: string;
 }
 
+interface HorarioActivo {
+  nombre: string;
+  hora_inicio: string;
+  hora_fin: string;
+  dias_laborales: string[];
+  total_horas_dia: number;
+}
+
+interface TurnoVigente {
+  tiene_turno: boolean;
+  empleado_id: string;
+  fecha: string;
+  dia_laboral: boolean;
+  horario: HorarioActivo | null;
+}
+
 export default function AsistenciaPage() {
   const [hora, setHora] = useState("");
   const [fecha, setFecha] = useState("");
@@ -31,6 +75,11 @@ export default function AsistenciaPage() {
   const [requiereMotivo, setRequiereMotivo] = useState(false);
   const [motivoTexto, setMotivoTexto] = useState("");
   const [contextoFueraHorario, setContextoFueraHorario] = useState<string | null>(null);
+  const [turnoVigente, setTurnoVigente] = useState<TurnoVigente | null>(null);
+
+  // ── Reconocimiento de voz para justificación ──────────────────────────
+  const [grabando, setGrabando] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   // Real-time clock
   useEffect(() => {
@@ -58,15 +107,27 @@ export default function AsistenciaPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch attendance data from API
+  // Fetch attendance data + turno vigente en paralelo
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/asistencia");
-      if (!res.ok) throw new Error("Error al cargar datos de asistencia");
-      const data = await res.json();
+      const fechaHoy = new Date().toISOString().split("T")[0];
+      const [resAsistencia, resTurno] = await Promise.all([
+        fetch("/api/asistencia"),
+        fetch(`/api/schedules/active-shift?fecha=${fechaHoy}`).catch(() => null),
+      ]);
+
+      if (!resAsistencia.ok)
+        throw new Error("Error al cargar datos de asistencia");
+      const data = await resAsistencia.json();
       setEmpleado(data.empleado);
       setRegistros(data.registros);
       setRegistrosHoy(data.registrosHoy);
+
+      // Turno vigente: silenciosamente ignorar errores para no bloquear marcación
+      if (resTurno && resTurno.ok) {
+        const dataTurno: TurnoVigente = await resTurno.json();
+        setTurnoVigente(dataTurno);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -82,6 +143,58 @@ export default function AsistenciaPage() {
   const ultimoRegistroHoy = registrosHoy.length > 0 ? registrosHoy[0] : null;
   const siguienteTipo: "Entrada" | "Salida" =
     !ultimoRegistroHoy || ultimoRegistroHoy.tipo === "Salida" ? "Entrada" : "Salida";
+
+  // ── Funciones de reconocimiento de voz (Web Speech API) ────────────────
+  function iniciarGrabacion() {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setError("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "es-CO";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = motivoTexto;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + transcript;
+        } else {
+          interim = transcript;
+        }
+      }
+      setMotivoTexto(finalTranscript + (interim ? " " + interim : ""));
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error !== "aborted") {
+        setError("Error de reconocimiento de voz: " + event.error);
+      }
+      setGrabando(false);
+    };
+
+    recognition.onend = () => {
+      setGrabando(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setGrabando(true);
+  }
+
+  function detenerGrabacion() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setGrabando(false);
+    }
+  }
 
   async function marcarAsistencia(motivo?: string) {
     setMarcando(true);
@@ -206,6 +319,46 @@ export default function AsistenciaPage() {
           </p>
           <p className="text-sm text-white/40 mt-3 capitalize">{fecha}</p>
 
+          {/* Tarjeta de turno vigente */}
+          {turnoVigente && (
+            <div className="mt-6 inline-flex flex-col items-center gap-1 px-5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.10] backdrop-blur-sm">
+              {!turnoVigente.tiene_turno ? (
+                <p className="text-xs text-white/40 font-medium">
+                  Sin horario asignado — contacta a RRHH
+                </p>
+              ) : !turnoVigente.dia_laboral ? (
+                <p className="text-xs text-white/40 font-medium">
+                  Hoy no es día laboral según tu horario
+                </p>
+              ) : turnoVigente.horario ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs font-semibold text-white/70">
+                      {turnoVigente.horario.nombre}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/40 font-mono">
+                    {turnoVigente.horario.hora_inicio} –{" "}
+                    {turnoVigente.horario.hora_fin}
+                  </p>
+                </>
+              ) : null}
+            </div>
+          )}
+
           <div className="mt-8">
             <button
               onClick={() => marcarAsistencia()}
@@ -276,20 +429,61 @@ export default function AsistenciaPage() {
             </div>
           )}
 
-          <div>
-            <textarea
-              value={motivoTexto}
-              onChange={(e) => setMotivoTexto(e.target.value)}
-              rows={3}
-              placeholder="Describe el motivo de la marcación fuera de horario..."
-              className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all placeholder:text-white/20 resize-none backdrop-blur-sm"
-            />
+          <div className="space-y-3">
+            {/* Botón de grabación de voz */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={grabando ? detenerGrabacion : iniciarGrabacion}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  grabando
+                    ? "bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
+                    : "bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.10] hover:text-white"
+                }`}
+              >
+                {grabando ? (
+                  <>
+                    <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse" />
+                    Detener grabación
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                    </svg>
+                    Grabar justificación
+                  </>
+                )}
+              </button>
+              {grabando && (
+                <span className="text-xs text-red-400/70 font-medium animate-pulse">
+                  Grabando…
+                </span>
+              )}
+            </div>
+
+            {/* Transcripción resultante (editable) */}
+            <div className="relative">
+              <textarea
+                value={motivoTexto}
+                onChange={(e) => setMotivoTexto(e.target.value)}
+                rows={3}
+                placeholder={grabando ? "Escuchando…" : "Graba una nota de voz o escribe aquí…"}
+                className={`w-full px-4 py-3 bg-white/[0.06] border rounded-xl text-white text-sm focus:outline-none focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.15] transition-all placeholder:text-white/20 resize-none backdrop-blur-sm ${
+                  grabando ? "border-red-500/30" : "border-white/[0.12]"
+                }`}
+              />
+              {motivoTexto && (
+                <span className="absolute top-2 right-3 text-[10px] text-white/30 font-medium">
+                  Puedes editar el texto
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => marcarAsistencia(motivoTexto)}
-              disabled={marcando || motivoTexto.trim().length === 0}
+              disabled={marcando || grabando || motivoTexto.trim().length === 0}
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-all"
             >
               {marcando ? (
@@ -308,6 +502,7 @@ export default function AsistenciaPage() {
             </button>
             <button
               onClick={() => {
+                detenerGrabacion();
                 setRequiereMotivo(false);
                 setMotivoTexto("");
                 setContextoFueraHorario(null);

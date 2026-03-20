@@ -27,7 +27,8 @@ export async function verifyPassword(password: string, storedHash: string): Prom
 // ─── JWT (HMAC-SHA256, sin dependencias externas) ────────────────────────────
 
 interface JWTPayload {
-  sub: string; // record ID de Airtable
+  sub: string;     // record ID de Airtable (recXXX) — tabla Personal, base Nómina Core
+  idCore?: string; // ID único del empleado formato SIRIUS-PER-XXXX — campo "ID Empleado"
   cedula: string;
   nombre: string;
   rol?: string; // "Super Admin" | "Admin Depto" | "Avanzado" | "Estándar" | "Lectura"
