@@ -94,16 +94,46 @@ async function checkFueraHorario(
     const horarioIds: string[] = (asignacion.fields["Horario"] as string[]) || [];
     if (!horarioIds.length) return { fueraHorario: false };
 
-    // 2. Fetch schedule details (first linked schedule)
-    const horUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioIds[0]}`;
-    const horRes = await fetch(horUrl, {
-      headers: { Authorization: `Bearer ${API_KEY}` },
-      cache: "no-store",
-    });
-    if (!horRes.ok) return { fueraHorario: false };
+    // 2. Resolver horario aplicable al día actual cuando hay múltiples horarios vinculados
+    const indiceDiaActual = new Date().getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+    const diaAIndice: Record<string, number> = {
+      Domingo: 0,
+      Lunes: 1,
+      Martes: 2,
+      "Miércoles": 3,
+      Miercoles: 3,
+      Jueves: 4,
+      Viernes: 5,
+      "Sábado": 6,
+      Sabado: 6,
+    };
 
-    const horario = await horRes.json();
-    const f = horario.fields;
+    const horariosResueltos = await Promise.all(
+      horarioIds.map(async (horarioId) => {
+        const horUrl = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioId}`;
+        const horRes = await fetch(horUrl, {
+          headers: { Authorization: `Bearer ${API_KEY}` },
+          cache: "no-store",
+        });
+        if (!horRes.ok) return null;
+
+        const horario = await horRes.json();
+        const f = horario.fields as Record<string, unknown>;
+        const diasLaborales = (f["Dias_Laborales"] as string[]) || [];
+        const aplicaHoy = diasLaborales.some((dia) => diaAIndice[dia] === indiceDiaActual);
+
+        return { horario, f, aplicaHoy };
+      })
+    );
+
+    const horariosValidos = horariosResueltos.filter(
+      (h): h is NonNullable<typeof h> => h !== null
+    );
+    if (!horariosValidos.length) return { fueraHorario: false };
+
+    const horarioDelDia = horariosValidos.find((h) => h.aplicaHoy);
+    const seleccionado = horarioDelDia ?? horariosValidos[0];
+    const f = seleccionado.f;
 
     // Hora_Entrada and Hora_Salida are stored as seconds from midnight (Airtable duration)
     const entradaSeg = f["Hora_Entrada"] as number | null;

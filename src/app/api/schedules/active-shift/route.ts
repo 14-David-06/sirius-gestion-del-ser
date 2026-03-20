@@ -199,24 +199,41 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Obtener el primer horario vinculado (el principal)
-    const horarioId = horarioIds[0];
-    const horarioUrl = `https://api.airtable.com/v0/${BASE_GESTION}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioId}`;
-    const horarioRes = await fetch(horarioUrl, {
-      headers: { Authorization: `Bearer ${API_KEY}` },
-      cache: "no-store",
-    });
+    // Resolver TODOS los horarios vinculados y seleccionar el que aplica para la fecha.
+    // Si ninguno aplica, se retorna el primero como referencia visual con dia_laboral=false.
+    const horariosResueltos = await Promise.all(
+      horarioIds.map(async (horarioId) => {
+        const horarioUrl = `https://api.airtable.com/v0/${BASE_GESTION}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioId}`;
+        const horarioRes = await fetch(horarioUrl, {
+          headers: { Authorization: `Bearer ${API_KEY}` },
+          cache: "no-store",
+        });
+        if (!horarioRes.ok) return null;
 
-    if (!horarioRes.ok) {
-      console.error("[ActiveShift GET] Error al obtener horario:", horarioRes.status);
+        const horarioRecord = await horarioRes.json();
+        const hf = horarioRecord.fields as Record<string, unknown>;
+        const diasLaborales = (hf["Dias_Laborales"] as string[]) || [];
+        return {
+          horarioRecord,
+          hf,
+          diasLaborales,
+          diaLaboral: esDiaLaboral(fecha, diasLaborales),
+        };
+      })
+    );
+
+    const horariosValidos = horariosResueltos.filter(
+      (h): h is NonNullable<typeof h> => h !== null
+    );
+
+    if (horariosValidos.length === 0) {
       return NextResponse.json({ error: "Error al obtener datos del horario" }, { status: 500 });
     }
 
-    const horarioRecord = await horarioRes.json();
-    const hf = horarioRecord.fields as Record<string, unknown>;
-
-    const diasLaborales = (hf["Dias_Laborales"] as string[]) || [];
-    const diaLaboral = esDiaLaboral(fecha, diasLaborales);
+    const horarioDelDia = horariosValidos.find((h) => h.diaLaboral);
+    const seleccionado = horarioDelDia ?? horariosValidos[0];
+    const { horarioRecord, hf, diasLaborales } = seleccionado;
+    const diaLaboral = Boolean(horarioDelDia);
 
     const horaInicioSeg = hf["Hora_Entrada"] as number;
     const horaFinSeg = hf["Hora_Salida"] as number;
