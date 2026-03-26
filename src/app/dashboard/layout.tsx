@@ -5,7 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  adminOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
   {
     label: "Resumen",
     href: "/dashboard",
@@ -21,6 +28,25 @@ const navItems = [
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Solicitudes",
+    href: "/dashboard/solicitudes",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Admin Solicitudes",
+    href: "/dashboard/solicitudes/admin",
+    adminOnly: true,
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
       </svg>
     ),
   },
@@ -115,6 +141,7 @@ export default function DashboardLayout({
   const [toast, setToast] = useState<{ icon: string; cat: string; msg: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [clockStr, setClockStr] = useState(""); // empty on server, filled after mount
+  const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
     const fmt = () =>
@@ -122,6 +149,20 @@ export default function DashboardLayout({
     setClockStr(fmt());
     const id = setInterval(() => setClockStr(fmt()), 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Cargar rol del usuario para filtrar nav items adminOnly
+  useEffect(() => {
+    fetch("/api/auth/check-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { rol?: string } | null) => {
+        if (d?.rol) setUserRole(d.rol);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -156,15 +197,25 @@ export default function DashboardLayout({
     return pathname.startsWith(href);
   };
 
+  // Determinar si el usuario tiene rol de administrador
+  const isAdminUser = ["Admin Depto", "Super Admin", "Avanzado"].some(
+    (r) => userRole === r || userRole?.includes(r)
+  );
+
+  // Filtrar items según rol
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdminUser);
+
   // Alternate background images per module
   const bgImages = ["/21032025-DSCF8676.jpg", "/DSC_2854.jpg"];
-  const routeIndex = navItems.findIndex((item) => isActive(item.href));
+  const routeIndex = visibleNavItems.findIndex((item) => isActive(item.href));
   const bgImage = bgImages[routeIndex % 2 === 0 ? 0 : 1];
 
   // Route-based hero metadata
   const routeMeta: Record<string, { title: string; subtitle: string }> = {
     "/dashboard": { title: "Resumen General", subtitle: "Panorama completo del sistema de gestión" },
     "/dashboard/contratos": { title: "Manejo de Contratos", subtitle: "Gestión integral de contratos laborales" },
+    "/dashboard/solicitudes": { title: "Mis Solicitudes", subtitle: "Vacaciones, permisos y novedades de nómina" },
+    "/dashboard/solicitudes/admin": { title: "Panel de Solicitudes", subtitle: "Administración y aprobación de solicitudes del equipo" },
     "/dashboard/novedades-nomina": { title: "Novedades Nómina", subtitle: "Vacaciones, permisos y novedades de nómina" },
     "/dashboard/asistencia": { title: "Marcar Asistencia", subtitle: "Registro de entrada y salida en tiempo real" },
     "/dashboard/asistencia/admin": { title: "Admin Asistencia", subtitle: "Gestión de novedades y resúmenes de período" },
@@ -199,7 +250,7 @@ export default function DashboardLayout({
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1 flex-1 px-6">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -267,7 +318,7 @@ export default function DashboardLayout({
         {/* Mobile dropdown menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-white/[0.1] bg-black/60 backdrop-blur-2xl px-4 py-3 space-y-1">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

@@ -12,6 +12,10 @@ import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
+// Cache en memoria para registros de Configuracion_Horarios (TTL: 5 min)
+const horariosCache = new Map<string, { fields: Record<string, unknown>; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 const BASE_GESTION = env.airtable.baseGestionDelSer;
 const TABLE_ASIGNACION = env.airtable.tableAsignacionHorario;
 const TABLE_HORARIOS = env.airtable.tableConfiguracionHorarios;
@@ -203,15 +207,26 @@ export async function GET(req: NextRequest) {
     // Si ninguno aplica, se retorna el primero como referencia visual con dia_laboral=false.
     const horariosResueltos = await Promise.all(
       horarioIds.map(async (horarioId) => {
-        const horarioUrl = `https://api.airtable.com/v0/${BASE_GESTION}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioId}`;
-        const horarioRes = await fetch(horarioUrl, {
-          headers: { Authorization: `Bearer ${API_KEY}` },
-          cache: "no-store",
-        });
-        if (!horarioRes.ok) return null;
+        // Usar cache en memoria para evitar fetches repetidos (TTL 5 min)
+        const cached = horariosCache.get(horarioId);
+        let hf: Record<string, unknown>;
+        let horarioRecord: { id: string; fields: Record<string, unknown> };
 
-        const horarioRecord = await horarioRes.json();
-        const hf = horarioRecord.fields as Record<string, unknown>;
+        if (cached && cached.expiresAt > Date.now()) {
+          hf = cached.fields;
+          horarioRecord = { id: horarioId, fields: hf };
+        } else {
+          const horarioUrl = `https://api.airtable.com/v0/${BASE_GESTION}/${encodeURIComponent(TABLE_HORARIOS)}/${horarioId}`;
+          const horarioRes = await fetch(horarioUrl, {
+            headers: { Authorization: `Bearer ${API_KEY}` },
+            cache: "no-store",
+          });
+          if (!horarioRes.ok) return null;
+
+          horarioRecord = await horarioRes.json();
+          hf = horarioRecord.fields as Record<string, unknown>;
+          horariosCache.set(horarioId, { fields: hf, expiresAt: Date.now() + CACHE_TTL_MS });
+        }
         const diasLaborales = (hf["Dias_Laborales"] as string[]) || [];
         return {
           horarioRecord,
