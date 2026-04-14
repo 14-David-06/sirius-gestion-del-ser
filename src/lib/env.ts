@@ -37,6 +37,7 @@ type EnvKey =
   | "AIRTABLE_TABLE_CONTRACTS_CONTRACTS"
   | "AIRTABLE_TABLE_CONTRACTS_HISTORY"
   | "AIRTABLE_TABLE_CONTRACTS_ALERTAS"
+  | "AIRTABLE_TABLE_LIFECYCLE_EVENTS"
   | "AWS_S3_BUCKET_CONTRACTS"
   | "AWS_S3_REGION"
   | "AWS_ACCESS_KEY_ID"
@@ -48,8 +49,6 @@ type EnvKey =
   | "ADM_MICROSOFT_CLIENT_ID"
   | "ADM_MICROSOFT_CLIENT_SECRET"
   | "ADM_MICROSOFT_EMAIL"
-  | "WEBHOOK_VACACIONES"
-  | "WEBHOOK_PERMISO"
   | "WEBHOOK_NOVEDAD_NOMINA"
   | "CRON_SECRET"
   | "ANTHROPIC_API_KEY";
@@ -92,6 +91,7 @@ export const env = {
     tableContractsContracts: getEnvVar("AIRTABLE_TABLE_CONTRACTS_CONTRACTS") || "contracts_contracts",
     tableContractsHistory: getEnvVar("AIRTABLE_TABLE_CONTRACTS_HISTORY") || "contracts_history",
     tableContractsAlertas: getEnvVar("AIRTABLE_TABLE_CONTRACTS_ALERTAS") || "contracts_alertas",
+    tableLifecycleEvents: getEnvVar("AIRTABLE_TABLE_LIFECYCLE_EVENTS") || "lifecycle_events",
     revalidateSeconds: parseInt(
       getEnvVar("AIRTABLE_REVALIDATE_SECONDS") || "60",
       10
@@ -107,8 +107,6 @@ export const env = {
     email: getEnvVar("ADM_MICROSOFT_EMAIL"),
   },
   webhooks: {
-    vacaciones: getEnvVar("WEBHOOK_VACACIONES"),
-    permiso: getEnvVar("WEBHOOK_PERMISO"),
     novedadNomina: getEnvVar("WEBHOOK_NOVEDAD_NOMINA"),
   },
   anthropic: {

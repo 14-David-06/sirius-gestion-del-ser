@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import StatusBadge from "@/components/StatusBadge";
+import LifecycleSection from "@/components/LifecycleSection";
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
@@ -57,7 +58,7 @@ interface FormData {
   fechaRetiro: string;
 }
 
-type SectionKey = "personal" | "documentos";
+type SectionKey = "personal" | "documentos" | "lifecycle";
 type VinculacionTab = "activos" | "inactivos" | "proceso";
 type DocTab = "todos" | "pendiente" | "cumplido" | "proceso";
 type ModalMode = "create" | "edit" | "view" | null;
@@ -549,6 +550,7 @@ export default function VinculacionPage() {
           {([
             { key: "personal" as SectionKey, label: "Personal", icon: "👥" },
             { key: "documentos" as SectionKey, label: "Gestión Documental", icon: "📄" },
+            { key: "lifecycle" as SectionKey, label: "Ciclo de Vida", icon: "🔄" },
           ]).map((s) => (
             <button
               key={s.key}
@@ -1098,6 +1100,11 @@ export default function VinculacionPage() {
             )}
           </>
         )}
+
+        {/* ════════════════════════════════════════════════════════════════
+           SECTION: LIFECYCLE (Ciclo de Vida)
+           ════════════════════════════════════════════════════════════════ */}
+        {section === "lifecycle" && <LifecycleSection />}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════

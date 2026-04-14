@@ -40,6 +40,18 @@ interface Empleado {
   fields: Record<string, unknown>;
 }
 
+interface Alerta {
+  id: string;
+  idAlerta: string;
+  idContrato: string;
+  idEmpleado: string;
+  nombreEmpleado: string;
+  tipoAlerta: string;
+  fechaVencimiento: string;
+  fechaAlerta: string;
+  leida: boolean;
+}
+
 type ModalTipo = "crear" | "detalle" | "terminar" | "editar" | null;
 
 const TIPO_LABELS: Record<string, string> = {
@@ -114,6 +126,11 @@ export default function ContratosPage() {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfMensaje, setPdfMensaje] = useState<string | null>(null);
 
+  // Alertas de vencimiento (solo para admin)
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [alertasNoLeidas, setAlertasNoLeidas] = useState(0);
+  const [alertasExpandidas, setAlertasExpandidas] = useState(false);
+
   // ─── Cargar datos ──────────────────────────────────────────────────────────
 
   const cargarContratos = useCallback(async () => {
@@ -131,6 +148,30 @@ export default function ContratosPage() {
     }
   }, []);
 
+  const cargarAlertas = useCallback(async () => {
+    try {
+      const res = await fetch("/api/contratos/alertas");
+      if (!res.ok) return;
+      const data = await res.json();
+      setAlertas(data.alertas || []);
+      setAlertasNoLeidas(data.noLeidas || 0);
+    } catch {
+      // Silenciosamente fallar si no hay permisos
+    }
+  }, []);
+
+  const marcarAlertaLeida = async (alertaId: string) => {
+    try {
+      const res = await fetch(`/api/contratos/alertas/${alertaId}/read`, { method: "PATCH" });
+      if (res.ok) {
+        setAlertas((prev) => prev.map((a) => a.id === alertaId ? { ...a, leida: true } : a));
+        setAlertasNoLeidas((prev) => Math.max(0, prev - 1));
+      }
+    } catch {
+      // Silenciosamente fallar
+    }
+  };
+
   useEffect(() => {
     cargarContratos();
 
@@ -140,11 +181,16 @@ export default function ContratosPage() {
       .then((d) => {
         if (d?.rol) {
           const roles = ["Admin Depto", "Super Admin", "Avanzado"];
-          setIsAdmin(roles.some((r) => d.rol === r || d.rol?.includes(r)));
+          const esAdmin = roles.some((r) => d.rol === r || d.rol?.includes(r));
+          setIsAdmin(esAdmin);
+          // Cargar alertas solo si es admin
+          if (esAdmin) {
+            cargarAlertas();
+          }
         }
       })
       .catch(() => {});
-  }, [cargarContratos]);
+  }, [cargarContratos, cargarAlertas]);
 
   // Cargar empleados al abrir modal crear
   useEffect(() => {
@@ -340,8 +386,105 @@ export default function ContratosPage() {
         <StatCard title="Terminados" value={terminados} icon="🔒" color="red" />
       </div>
 
-      {/* Alerta contratos por vencer */}
-      {porVencer > 0 && (
+      {/* Banner de alertas de vencimiento (solo admin) */}
+      {isAdmin && alertas.length > 0 && (
+        <div className="rounded-xl bg-black/30 border border-white/[0.12] overflow-hidden backdrop-blur-sm">
+          {/* Cabecera clickeable */}
+          <button
+            onClick={() => setAlertasExpandidas(!alertasExpandidas)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔔</span>
+              <span className="text-sm text-white/80">
+                <span className="font-semibold">Alertas de vencimiento</span>
+                {alertasNoLeidas > 0 && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                    {alertasNoLeidas} nueva{alertasNoLeidas > 1 ? "s" : ""}
+                  </span>
+                )}
+              </span>
+            </div>
+            <svg
+              className={`w-4 h-4 text-white/40 transition-transform ${alertasExpandidas ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Lista de alertas expandida */}
+          {alertasExpandidas && (
+            <div className="border-t border-white/[0.06] divide-y divide-white/[0.04]">
+              {alertas.map((alerta) => {
+                // Colores según tipo de alerta
+                const esUrgente = alerta.tipoAlerta === "7_dias";
+                const esMedia = alerta.tipoAlerta === "15_dias";
+                const colorBg = esUrgente ? "bg-red-500/10" : esMedia ? "bg-yellow-500/10" : "bg-green-500/10";
+                const colorBorder = esUrgente ? "border-red-500/30" : esMedia ? "border-yellow-500/30" : "border-green-500/30";
+                const colorText = esUrgente ? "text-red-400" : esMedia ? "text-yellow-400" : "text-green-400";
+                const emoji = esUrgente ? "🔴" : esMedia ? "🟡" : "🟢";
+                const diasLabel = alerta.tipoAlerta === "7_dias" ? "7 días" : alerta.tipoAlerta === "15_dias" ? "15 días" : "30 días";
+
+                // Buscar el contrato correspondiente para poder abrirlo
+                const contratoRelacionado = contratos.find((c) => c.idContrato === alerta.idContrato);
+
+                return (
+                  <div
+                    key={alerta.id}
+                    className={`flex items-center justify-between px-5 py-3 ${alerta.leida ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className={`flex-shrink-0 px-2 py-1 rounded-md text-xs font-medium ${colorBg} ${colorText} border ${colorBorder}`}>
+                        {emoji} {diasLabel}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white/80 truncate">
+                          <span className="font-medium">{alerta.nombreEmpleado}</span>
+                          <span className="text-white/40 ml-2">({alerta.idContrato})</span>
+                        </p>
+                        <p className="text-xs text-white/40">
+                          Vence: {formatFecha(alerta.fechaVencimiento)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      {contratoRelacionado && (
+                        <button
+                          onClick={() => abrirDetalle(contratoRelacionado)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs transition-colors"
+                        >
+                          Ver
+                        </button>
+                      )}
+                      {!alerta.leida && (
+                        <button
+                          onClick={() => marcarAlertaLeida(alerta.id)}
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 text-xs transition-colors"
+                          title="Marcar como leída"
+                        >
+                          ✓
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {alertas.length === 0 && (
+                <p className="px-5 py-4 text-sm text-white/30 text-center">No hay alertas pendientes</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Alerta simple contratos por vencer (cuando no hay alertas del cron pero sí hay contratos próximos) */}
+      {(!isAdmin || alertas.length === 0) && porVencer > 0 && (
         <div className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-300 text-sm">
           <span className="text-lg">⚠️</span>
           <span>

@@ -129,85 +129,27 @@ Registro de entrada/salida de empleados con validación de horarios y generació
 
 ---
 
-## Módulo de Novedades Nómina
+## Módulo de Solicitudes (Requests)
 
 ### Descripción Funcional
 
-Gestión de solicitudes de vacaciones, permisos y novedades de asistencia. Integración con n8n para procesamiento de archivos y notificaciones.
+Gestión unificada de solicitudes de vacaciones, permisos y novedades de nómina. Incluye cálculo automático de días hábiles, gestión de saldos de vacaciones e integración con festivos colombianos.
 
 ### Endpoints
 
-| Método | Ruta | Autenticación | Descripción |
-|--------|------|---------------|-------------|
-| GET | `/api/novedades-nomina` | JWT requerido | Retorna datos del empleado logueado (nombre, cargo, área, etc.) |
-| POST | `/api/novedades-nomina` | JWT requerido | Crea solicitud (vacaciones, permiso, novedad asistencia). Dispara webhook n8n |
+| Método | Ruta | Autenticación | Rol Mínimo | Descripción |
+|--------|------|---------------|-----------|-------------|
+| GET | `/api/requests` | JWT | Estándar | Lista solicitudes (filtrable por empleado, tipo, estado) |
+| POST | `/api/requests` | JWT | Estándar | Crea nueva solicitud |
+| GET | `/api/requests/:id` | JWT | Estándar | Detalle de solicitud |
+| PATCH | `/api/requests/:id/approve` | JWT | Admin Depto | Aprueba solicitud |
+| PATCH | `/api/requests/:id/reject` | JWT | Admin Depto | Rechaza solicitud |
+| PATCH | `/api/requests/:id/cancel` | JWT | Estándar | Cancela solicitud (solo propias) |
+| GET | `/api/requests/balance` | JWT | Estándar | Saldo de vacaciones del empleado |
+| GET | `/api/requests/tipos` | JWT | Lectura | Catálogo de tipos de solicitud |
+| GET | `/api/requests/festivos` | JWT | Lectura | Festivos Colombia para cálculo |
 
-### Notas de Implementación
-
-**GET - Datos devueltos:**
-```json
-{
-  "nombre": "María García",
-  "cedula": "9876543210",
-  "cargo": "Especialista HR",
-  "area": "Recursos Humanos",
-  "correo": "maria@sirius.com",
-  "telefono": "+57 300 123 4567"
-}
-```
-
-**POST - Tipos de Solicitud:**
-
-**1. Novedad de Asistencia (FormData + audio):**
-- Content-Type: `multipart/form-data`
-- Campos:
-  - `empleado` (string)
-  - `cedula` (string)
-  - `transcripcion` (string) — de análisis de voz
-  - `contextoAsistencia` (string) — motivo de la novedad
-  - `registroAsistenciaId` (string) — link a registro de asistencia
-  - `audio` (File, opcional) — archivo de audio
-- Crea en tabla: `Novedades_Asistencia`
-- Webhook: n8n procesa audio, adjunta archivo
-
-**2. Vacaciones (JSON):**
-- `tipoSolicitud: "vacaciones"`
-- Campos:
-  - `nombre`, `cedula`, `cargo`, `area`
-  - `fechavacaciones` (yyyy-MM-dd)
-  - `fechaFinal` (yyyy-MM-dd)
-  - `diasvacaciones` (number)
-  - `motivo` (string)
-- Crea en tabla: `Solicitudes_Vacaciones`
-- Webhook: n8n maneja firma digital
-
-**3. Permiso (JSON):**
-- `tipoSolicitud: "permiso"`
-- Campos:
-  - `nombre`, `cedula`
-  - `tipo` (string) — "personal", "medico", "calamidad", "maternidad", "paternidad", "bancaria"
-  - `fechaPermiso` (yyyy-MM-dd)
-  - `horas` (string) — "4 horas", "8 horas", etc.
-  - `motivo` (string)
-- Crea en tabla: `Solicitudes_Permisos`
-- Mapeo de tipos: `TIPO_PERMISO_MAP`
-- Webhook: n8n procesa notificación
-
-**Flujo de Webhook (no-bloqueante):**
-```typescript
-fireWebhook(url, {
-  method: "POST",
-  body: formData,
-}).catch((e) => console.error("[Webhook]", e));
-```
-- No espera respuesta
-- Errores solo se loguean
-- Garantiza que la solicitud se guarde en Airtable incluso si webhook falla
-
-**Validaciones:**
-- Mínimo 8 caracteres en contraseña
-- Las fechas se validan en el cliente (frontend)
-- Horas de permiso se parsean de strings como "4 horas" → 4
+> **Nota:** El módulo `/api/novedades-nomina` fue deprecado y consolidado en `/api/requests` para evitar duplicación de funcionalidad.
 
 ---
 

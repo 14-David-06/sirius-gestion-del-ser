@@ -102,13 +102,6 @@ export function calcularFechasAlerta(
   return fin.toISOString().split("T")[0];
 }
 
-/** Verifica si un contrato ya está vencido */
-export function esContratoVencido(fechaFin: string | null): boolean {
-  if (!fechaFin) return false;
-  const hoy = new Date().toISOString().split("T")[0];
-  return fechaFin < hoy;
-}
-
 /** Mapea un record de Airtable a la interfaz Contrato */
 export function mapearContrato(record: {
   id: string;

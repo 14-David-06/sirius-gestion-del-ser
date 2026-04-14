@@ -27,17 +27,20 @@ src/
 │   │   ├── documentos/         # Compliance (+ upload/)
 │   │   ├── horarios/           # Horarios laborales
 │   │   ├── configuracion-horarios/
-│   │   ├── novedades-nomina/   # Vacaciones, permisos, novedades
+│   │   ├── requests/           # Solicitudes (vacaciones, permisos, novedades)
+│   │   ├── schedules/          # Turnos y asignaciones
+│   │   ├── contratos/          # Gestión de contratos
+│   │   ├── lifecycle/          # Ciclo de vida empleado
 │   │   └── vinculacion/        # Vinculación laboral
 │   ├── dashboard/              # Frontend — Páginas protegidas
 │   │   ├── asistencia/         # Módulo asistencia
 │   │   ├── asistente/          # Chat IA
 │   │   ├── contratos/          # Gestión contratos
-│   │   ├── cronogramas/        # Planificación
+│   │   ├── cronogramas/        # Calendario de turnos
 │   │   ├── documentos/         # Gestión documental
 │   │   ├── horarios/           # Vista horarios
-│   │   ├── novedades-nomina/   # Nómina
-│   │   ├── vinculacion/        # Vinculación
+│   │   ├── solicitudes/        # Vacaciones, permisos, novedades
+│   │   ├── vinculacion/        # Vinculación + ciclo de vida
 │   │   ├── layout.tsx          # Sidebar + navegación
 │   │   └── page.tsx            # Home dashboard
 │   ├── login/page.tsx          # Login 3 pasos
@@ -47,7 +50,8 @@ src/
 │   ├── CumplimientoChart.tsx   # Visualización progreso
 │   ├── DataTable.tsx           # Tabla genérica
 │   ├── StatCard.tsx            # Tarjetas KPI
-│   └── StatusBadge.tsx         # Badges de estado
+│   ├── StatusBadge.tsx         # Badges de estado
+│   └── LifecycleSection.tsx    # Vinculación/desvinculación
 ├── lib/                        # Lógica de negocio
 │   ├── ai/
 │   │   ├── agents.ts           # runHRAgent(), runAttendanceAgent(), runAgentLoop()

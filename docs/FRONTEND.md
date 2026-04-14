@@ -59,15 +59,17 @@ src/app/
 │   ├── contratos/
 │   │   └── page.tsx          # Gestión de contratos
 │   ├── cronogramas/
-│   │   └── page.tsx          # Turnos semanales (MOCKDATA)
+│   │   └── page.tsx          # Calendario de turnos
 │   ├── documentos/
 │   │   └── page.tsx          # Gestión documental (compliance)
 │   ├── horarios/
 │   │   └── page.tsx          # Asignación de horarios
-│   ├── novedades-nomina/
-│   │   └── page.tsx          # Vacaciones + permisos
+│   ├── solicitudes/
+│   │   ├── page.tsx          # Vacaciones, permisos, novedades
+│   │   └── admin/
+│   │       └── page.tsx      # Panel de aprobación
 │   └── vinculacion/
-│       └── page.tsx          # CRUD personal
+│       └── page.tsx          # CRUD personal + ciclo de vida
 └── layout.tsx                # Root layout + middleware check
 ```
 
@@ -268,47 +270,24 @@ interface EmpleadoInfo {
 
 ---
 
-### Novedades Nómina (`/dashboard/novedades-nomina`)
+### Solicitudes (`/dashboard/solicitudes`)
 
-**Directiva**: `"use client"` con canvas para firma
-**API**: `GET /api/novedades-nomina`, `POST /api/novedades-nomina`
+**Directiva**: `"use client"`
+**API**: `GET /api/requests`, `POST /api/requests`, `GET /api/requests/balance`, `GET /api/requests/tipos`
 
-**2 Tabs Principales**:
+**Funcionalidades**:
+- Crear solicitudes de vacaciones, permisos y novedades
+- Ver historial de solicitudes propias
+- Consultar saldo de vacaciones disponible
+- Cálculo automático de días hábiles (excluye festivos Colombia)
 
-#### Tab 1: Vacaciones (🏖️)
-- Seleccionar fecha inicio y fin
-- Cálculo automático: días hábiles (excluye sábados y domingos)
-- Canvas para firma digital
-- Botón enviar solicitud
+**Panel Admin** (`/dashboard/solicitudes/admin`):
+- Lista de solicitudes pendientes del equipo
+- Aprobar/rechazar con comentario
+- Filtros por tipo, estado, empleado
+- Marcado para procesar en nómina
 
-#### Tab 2: Permiso (📋)
-- Selector de tipo:
-  - Personal
-  - Médico
-  - Calamidad
-  - Otro
-- Entrada de horas (1-8 o más)
-- Canvas para firma digital
-- Botón enviar solicitud
-
-**Tipos TypeScript**:
-
-```typescript
-type TipoSolicitud = "vacaciones" | "permiso";
-
-interface SolicitudVacaciones {
-  fechaInicio: string;   // YYYY-MM-DD
-  fechaFin: string;      // YYYY-MM-DD
-  diasHabiles: number;
-  firma: string;         // base64 canvas
-}
-
-interface SolicitudPermiso {
-  tipo: "Personal" | "Médico" | "Calamidad" | "Otro";
-  horas: number;
-  firma: string;         // base64 canvas
-}
-```
+> **Nota:** El módulo `/dashboard/novedades-nomina` fue deprecado y consolidado en `/dashboard/solicitudes`.
 
 ---
 
@@ -519,14 +498,15 @@ interface PersonalRecord {
 
 **Navbar**:
 - Logo Sirius
-- 7 nav items (desktop, hamburger menu mobile):
+- Nav items (desktop, hamburger menu mobile):
   1. Resumen → `/dashboard`
   2. Contratos → `/dashboard/contratos`
-  3. Novedades Nómina → `/dashboard/novedades-nomina`
+  3. Solicitudes → `/dashboard/solicitudes`
   4. Asistencia → `/dashboard/asistencia`
   5. Horarios → `/dashboard/horarios`
-  6. Asistente AI → `/dashboard/asistente`
-  7. Vinculación → `/dashboard/vinculacion`
+  6. Cronogramas → `/dashboard/cronogramas`
+  7. Asistente AI → `/dashboard/asistente`
+  8. Vinculación → `/dashboard/vinculacion`
 - Reloj en vivo (formato es-CO: HH:MM:SS)
 - Dot verde "Conectado"
 - Botón logout
@@ -840,8 +820,10 @@ Pequeños elementos: rounded-lg
 | Asistente | POST | `/api/ai/agent` | Chat IA (streaming SSE) | `{ pregunta: string }` |
 | Documentos | GET | `/api/documentos` | Lista documentos compliance | `?empleado=ID&capitulo=VLC` |
 | Documentos | PATCH | `/api/documentos` | Actualiza estado/URL/observaciones | `{ id: string, fields: {...} }` |
-| Novedades | GET | `/api/novedades-nomina` | Datos empleado + saldos | `` |
-| Novedades | POST | `/api/novedades-nomina` | Envía solicitud vacaciones/permiso | `{ tipo: "vacaciones" \| "permiso", ... }` |
+| Solicitudes | GET | `/api/requests` | Lista solicitudes del empleado | `?estado=pendiente` |
+| Solicitudes | POST | `/api/requests` | Crea nueva solicitud | `{ tipo: "vacaciones", ... }` |
+| Solicitudes | GET | `/api/requests/balance` | Saldo vacaciones del empleado | `` |
+| Solicitudes | PATCH | `/api/requests/:id/approve` | Aprueba solicitud (Admin) | `{ comentario?: string }` |
 | Horarios | GET | `/api/horarios` | Lista horarios disponibles | `` |
 | Horarios | POST | `/api/horarios` | Crea nueva asignación | `{ empleadoId: string, horarioIds: [...] }` |
 | Horarios | PATCH | `/api/horarios` | Edita asignación existente | `{ id: string, fields: {...} }` |

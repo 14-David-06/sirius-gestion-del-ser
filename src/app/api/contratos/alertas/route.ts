@@ -47,10 +47,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
     }
 
+    // Parámetro opcional: solo_no_leidas=true para filtrar
+    const searchParams = req.nextUrl.searchParams;
+    const soloNoLeidas = searchParams.get("solo_no_leidas") === "true";
+
     const url = new URL(tableUrl(TABLE_ALERTAS));
-    url.searchParams.set("filterByFormula", "{Enviada}=FALSE()");
+    // Mostrar alertas enviadas (creadas por el cron), opcionalmente filtrar por leídas
+    if (soloNoLeidas) {
+      url.searchParams.set("filterByFormula", "AND({Enviada}=TRUE(),OR({Leida}=FALSE(),{Leida}=BLANK()))");
+    } else {
+      url.searchParams.set("filterByFormula", "{Enviada}=TRUE()");
+    }
     url.searchParams.set("sort[0][field]", "Fecha_Alerta");
-    url.searchParams.set("sort[0][direction]", "asc");
+    url.searchParams.set("sort[0][direction]", "desc");
 
     const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${API_KEY}` },
@@ -64,13 +73,18 @@ export async function GET(req: NextRequest) {
       id: r.id,
       idAlerta: r.fields["ID_Alerta"],
       idContrato: r.fields["ID_Contrato"],
+      idEmpleado: r.fields["ID_Empleado"],
       nombreEmpleado: r.fields["Nombre_Empleado"],
       tipoAlerta: r.fields["Tipo_Alerta"],
       fechaVencimiento: r.fields["Fecha_Vencimiento"],
       fechaAlerta: r.fields["Fecha_Alerta"],
+      leida: r.fields["Leida"] === true,
     }));
 
-    return NextResponse.json({ alertas });
+    // Contar no leídas para el badge
+    const noLeidas = alertas.filter((a: { leida: boolean }) => !a.leida).length;
+
+    return NextResponse.json({ alertas, noLeidas });
   } catch (err) {
     console.error("[Contratos/alertas GET] Error:", err);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

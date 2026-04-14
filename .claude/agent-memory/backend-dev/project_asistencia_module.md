@@ -20,7 +20,7 @@ type: project
 
 **Motivo obligatorio fuera de horario:** Cuando `checkFueraHorario` devuelve `true` y el body carece de `motivo`, el POST devuelve `{ ok: false, requiereMotivo: true, contexto: "..." }` con HTTP 200 (no 4xx) para que el frontend pueda mostrar el formulario sin tratar la respuesta como error.
 
-**fireWebhook:** Se replicó el helper de `novedades-nomina/route.ts` directamente en `asistencia/route.ts` (no se extrajo a un módulo compartido) para cumplir la regla de no modificar archivos fuera del scope de la tarea.
+**fireWebhook:** Se implementó el helper `fireWebhook()` directamente en `asistencia/route.ts` para disparar webhooks de forma no-bloqueante. Se debería extraer a un módulo compartido `src/lib/webhook.ts` en un futuro refactor.
 
 **calcularHoras:** Tramo nocturno = 21:00–06:00. Dominicales y festivos se cuentan aparte del bucket ordinarias/extras. `horas_nocturnas` y `horas_extras_nocturnas` son el mismo valor (todo el tramo nocturno es extra según CST). Redondeo a 2 decimales.
 

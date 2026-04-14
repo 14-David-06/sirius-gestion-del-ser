@@ -24,7 +24,10 @@ src/app/api/
 │   └── upload/route.ts     # POST — Subir documentos
 ├── horarios/route.ts       # GET
 ├── configuracion-horarios/route.ts  # GET/POST/PUT/DELETE
-├── novedades-nomina/route.ts        # GET/POST
+├── requests/               # Solicitudes (vacaciones, permisos, novedades)
+│   ├── route.ts            # GET/POST
+│   ├── [id]/route.ts       # GET/PATCH
+│   └── balance/route.ts    # GET — Saldo vacaciones
 └── vinculacion/route.ts             # GET/POST
 ```
 
