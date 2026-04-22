@@ -47,6 +47,51 @@ interface BalanceVacaciones {
 type SolicitudesModalTipo = "nueva" | "detalle" | null;
 type TabNueva = "vacaciones" | "permiso" | "novedad_nomina";
 
+const TIPOS_PERMISO_FALLBACK: TipoCatalogo[] = [
+  {
+    id: "fallback-permiso-cita-medica",
+    nombre: "Cita médica",
+    tipoPadre: "permiso",
+    requiereSoporte: true,
+    afectaNomina: false,
+  },
+  {
+    id: "fallback-permiso-cal-amidad-domestica",
+    nombre: "Calamidad doméstica",
+    tipoPadre: "permiso",
+    requiereSoporte: true,
+    afectaNomina: false,
+  },
+  {
+    id: "fallback-permiso-diligencia-personal",
+    nombre: "Diligencia personal",
+    tipoPadre: "permiso",
+    requiereSoporte: false,
+    afectaNomina: false,
+  },
+  {
+    id: "fallback-permiso-estudio-capacitacion",
+    nombre: "Estudio o capacitación",
+    tipoPadre: "permiso",
+    requiereSoporte: true,
+    afectaNomina: false,
+  },
+  {
+    id: "fallback-permiso-licencia-luto",
+    nombre: "Licencia por luto",
+    tipoPadre: "permiso",
+    requiereSoporte: true,
+    afectaNomina: false,
+  },
+  {
+    id: "fallback-permiso-citacion-oficial",
+    nombre: "Citación oficial",
+    tipoPadre: "permiso",
+    requiereSoporte: true,
+    afectaNomina: false,
+  },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcularDiasHabiles(
@@ -97,6 +142,23 @@ function labelTipo(tipo: string): string {
     novedad_nomina: "📄 Novedad nómina",
   };
   return m[tipo] || tipo;
+}
+
+function normalizarTexto(valor: string): string {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_\-]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function formatearNombreTipo(nombre: string): string {
+  // "calamidad_domestica" → "Calamidad domestica"; "Cita médica" → "Cita médica"
+  const limpio = nombre.replace(/[_\-]+/g, " ").trim().replace(/\s+/g, " ");
+  if (!limpio) return nombre;
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
 }
 
 // ─── Badge de estado ──────────────────────────────────────────────────────────
@@ -155,6 +217,7 @@ export default function SolicitudesPage() {
 
   const [formPermiso, setFormPermiso] = useState({
     subtipo: "",
+    subtipoOtro: "",
     fechaInicio: "",
     duracionTipo: "dia" as "dia" | "horas",
     fechaFin: "",
@@ -323,9 +386,21 @@ export default function SolicitudesPage() {
     setSaving(true);
     setSaveError(null);
     try {
+      // Si selecciona "Otro", usar el texto libre como subtipo final
+      const subtipoFinal =
+        formPermiso.subtipo === "__otro__"
+          ? formPermiso.subtipoOtro.trim()
+          : formPermiso.subtipo;
+
+      if (formPermiso.subtipo === "__otro__" && !subtipoFinal) {
+        setSaveError("Especifica el tipo de permiso.");
+        setSaving(false);
+        return;
+      }
+
       const body: Record<string, unknown> = {
         tipo: "permiso",
-        subtipo: formPermiso.subtipo,
+        subtipo: subtipoFinal,
         fechaInicio: formPermiso.fechaInicio,
         descripcion: formPermiso.descripcion,
       };
@@ -347,7 +422,7 @@ export default function SolicitudesPage() {
       if (!res.ok) throw new Error(data.error || "Error al crear solicitud");
       setModal(null);
       setFormPermiso({
-        subtipo: "", fechaInicio: "", duracionTipo: "dia",
+        subtipo: "", subtipoOtro: "", fechaInicio: "", duracionTipo: "dia",
         fechaFin: "", duracionHoras: "", descripcion: "", soporteUrl: "",
       });
       await cargarSolicitudes();
@@ -427,7 +502,27 @@ export default function SolicitudesPage() {
     : balance.diasDisponibles >= 2 ? "orange"
     : "red";
 
-  const permisoSubtipoActual = permisosTipos.find((t) => t.nombre === formPermiso.subtipo);
+  const etiquetasNoValidasPermiso = new Set([
+    "remunerado",
+    "no remunerado",
+    "permiso remunerado",
+    "permiso no remunerado",
+    "otro",
+    "otros",
+    "n a",
+    "ninguno",
+  ]);
+
+  const permisosTiposMostrables = permisosTipos.filter(
+    (t) => !etiquetasNoValidasPermiso.has(normalizarTexto(t.nombre))
+  );
+
+  const permisosTiposDisponibles =
+    permisosTiposMostrables.length > 0 ? permisosTiposMostrables : TIPOS_PERMISO_FALLBACK;
+
+  const permisoSubtipoActual = permisosTiposDisponibles.find(
+    (t) => t.nombre === formPermiso.subtipo
+  );
   const novedadSubtipoActual = novedadesTipos.find((t) => t.nombre === formNovedad.subtipo);
 
   return (
@@ -750,13 +845,33 @@ export default function SolicitudesPage() {
                         className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-white/25"
                       >
                         <option value="">Selecciona un tipo</option>
-                        {permisosTipos.map((t) => (
+                        {permisosTiposDisponibles.map((t) => (
                           <option key={t.id} value={t.nombre}>
-                            {t.nombre}
+                            {formatearNombreTipo(t.nombre)}
                           </option>
                         ))}
+                        <option value="__otro__">Otro (especificar)</option>
                       </select>
                     </div>
+
+                    {formPermiso.subtipo === "__otro__" && (
+                      <div>
+                        <label className="block text-xs font-medium text-white/50 mb-1.5">
+                          Especifica el tipo de permiso <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={120}
+                          value={formPermiso.subtipoOtro}
+                          onChange={(e) =>
+                            setFormPermiso((p) => ({ ...p, subtipoOtro: e.target.value }))
+                          }
+                          placeholder="Describe brevemente el tipo de permiso..."
+                          className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-white/25 placeholder:text-white/20"
+                        />
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-xs font-medium text-white/50 mb-1.5">

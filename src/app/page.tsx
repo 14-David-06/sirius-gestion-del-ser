@@ -121,11 +121,6 @@ export default function LandingPage() {
                 desc: "Vacaciones, permisos y novedades de nómina en un solo módulo unificado.",
               },
               {
-                icon: "📅",
-                title: "Cronogramas de Trabajo",
-                desc: "Planificación visual de turnos y horarios del equipo por semana.",
-              },
-              {
                 icon: "⏰",
                 title: "Marcación de Asistencia",
                 desc: "Registro de entrada y salida en tiempo real con historial completo.",

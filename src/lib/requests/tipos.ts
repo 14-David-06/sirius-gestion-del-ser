@@ -221,4 +221,38 @@ export function mapearTipoCatalogo(record: { id: string; fields: Record<string, 
   };
 }
 
+// ─── Catálogos fallback (cuando Airtable está vacío o no disponible) ──────────
+// Si la tabla `requests_tipos_solicitud` no existe o no tiene registros activos,
+// el endpoint /api/requests/tipos responderá con estos valores por defecto.
+
+export const CATALOGO_FALLBACK_PERMISOS: TipoCatalogo[] = [
+  { id: "fallback-permiso-cita-medica", nombre: "Cita médica", tipoPadre: "permiso", requiereSoporte: true, afectaNomina: false },
+  { id: "fallback-permiso-calamidad-domestica", nombre: "Calamidad doméstica", tipoPadre: "permiso", requiereSoporte: true, afectaNomina: false },
+  { id: "fallback-permiso-diligencia-personal", nombre: "Diligencia personal", tipoPadre: "permiso", requiereSoporte: false, afectaNomina: false },
+  { id: "fallback-permiso-estudio-capacitacion", nombre: "Estudio o capacitación", tipoPadre: "permiso", requiereSoporte: true, afectaNomina: false },
+  { id: "fallback-permiso-licencia-luto", nombre: "Licencia por luto", tipoPadre: "permiso", requiereSoporte: true, afectaNomina: false },
+  { id: "fallback-permiso-citacion-oficial", nombre: "Citación oficial", tipoPadre: "permiso", requiereSoporte: true, afectaNomina: false },
+];
+
+export const CATALOGO_FALLBACK_NOVEDADES: TipoCatalogo[] = [
+  { id: "fallback-novedad-incapacidad-eps", nombre: "Incapacidad EPS", tipoPadre: "novedad_nomina", requiereSoporte: true, afectaNomina: true },
+  { id: "fallback-novedad-incapacidad-arl", nombre: "Incapacidad ARL", tipoPadre: "novedad_nomina", requiereSoporte: true, afectaNomina: true },
+  { id: "fallback-novedad-licencia-maternidad", nombre: "Licencia de maternidad", tipoPadre: "novedad_nomina", requiereSoporte: true, afectaNomina: true },
+  { id: "fallback-novedad-licencia-paternidad", nombre: "Licencia de paternidad", tipoPadre: "novedad_nomina", requiereSoporte: true, afectaNomina: true },
+  { id: "fallback-novedad-suspension", nombre: "Suspensión disciplinaria", tipoPadre: "novedad_nomina", requiereSoporte: true, afectaNomina: true },
+  { id: "fallback-novedad-ausencia-injustificada", nombre: "Ausencia injustificada", tipoPadre: "novedad_nomina", requiereSoporte: false, afectaNomina: true },
+  { id: "fallback-novedad-horas-extra", nombre: "Horas extra", tipoPadre: "novedad_nomina", requiereSoporte: false, afectaNomina: true },
+];
+
+export const CATALOGO_FALLBACK_TODOS: TipoCatalogo[] = [
+  ...CATALOGO_FALLBACK_PERMISOS,
+  ...CATALOGO_FALLBACK_NOVEDADES,
+];
+
+export function obtenerCatalogoFallback(tipoPadre: string | null): TipoCatalogo[] {
+  if (tipoPadre === "permiso") return CATALOGO_FALLBACK_PERMISOS;
+  if (tipoPadre === "novedad_nomina") return CATALOGO_FALLBACK_NOVEDADES;
+  return CATALOGO_FALLBACK_TODOS;
+}
+
 export { DIA_INDICE_A_NOMBRE };
