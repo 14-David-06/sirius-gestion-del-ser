@@ -1,34 +1,44 @@
-export default function Home() {
+import Image from "next/image";
+import Link from "next/link";
+
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <h1 className="text-4xl font-bold">Sirius Gestión del Ser</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400">
-          Bienvenido a tu proyecto Next.js. Edita{" "}
-          <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold font-mono text-sm">
-            src/app/page.tsx
-          </code>{" "}
-          para empezar.
-        </p>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://nextjs.org/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentación
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/learn"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Aprende Next.js
-          </a>
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <Image
+        src="/21032025-DSCF8676.jpg"
+        alt=""
+        fill
+        className="object-cover object-center"
+        priority
+        quality={90}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+
+      <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
+        <div className="bg-white rounded-2xl px-8 py-5 mb-10 shadow-2xl">
+          <Image
+            src="/Logo-Sirius.png"
+            alt="Sirius"
+            width={240}
+            height={83}
+            priority
+          />
         </div>
-      </main>
-    </div>
+
+        <h1 className="text-white text-2xl md:text-3xl font-light mb-3 tracking-wide">
+          Gestión del Ser
+        </h1>
+        <p className="text-white/70 text-base md:text-lg mb-12 leading-relaxed max-w-md">
+          Plataforma integral de talento humano, contratos y cumplimiento laboral
+        </p>
+
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 px-14 py-4 bg-[#1a51a8] hover:bg-[#1a4494] text-white text-lg font-semibold rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-[1.03] cursor-pointer select-none"
+        >
+          Acceder
+        </Link>
+      </div>
+    </main>
   );
 }

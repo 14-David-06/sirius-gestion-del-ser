@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "Sirius Gestión del Ser",
   description:
     "Plataforma integral de cumplimiento laboral, documental y humano. Conectamos personas, contratos y normatividad.",
+  icons: {
+    icon: "/Logo-Sirius.png",
+    apple: "/Logo-Sirius.png",
+  },
 };
 
 export default function RootLayout({
