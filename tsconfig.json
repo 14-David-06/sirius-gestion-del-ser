@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@sirius/solicitudes": [
+        "./packages/solicitudes/src/index.ts"
       ]
     }
   },
