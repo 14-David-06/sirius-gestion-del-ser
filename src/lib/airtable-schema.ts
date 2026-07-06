@@ -13,6 +13,7 @@ export const TABLES = {
   PERMISO:     process.env.AIRTABLE_TABLE_SOLICITUD_PERMISO  ?? "Solicitud_Permiso",
   VACACIONES:  process.env.AIRTABLE_TABLE_SOLICITUD_VACACIONES ?? "Solicitud_Vacaciones",
   NOVEDADES:   process.env.AIRTABLE_TABLE_NOVEDADES_NOMINA   ?? "Reportes Novedades Nomina",
+  DIAS_PACTO:  process.env.AIRTABLE_TABLE_DIAS_PACTO         ?? "Dias_Pacto",
 } as const;
 
 // ── FK compartida ─────────────────────────────────────────────────────────────
@@ -68,6 +69,15 @@ export const FIELDS = {
     ESTADO:         "Estado del Registro",
     FECHA_CREACION: "Fecha Creación",
   },
+  DIAS_PACTO: {
+    ID_COLABORADOR:   "id_colaborador_core",
+    SALDO_DISPONIBLE: "saldo_disponible",
+    SALDO_USADO:      "saldo_usado",
+    PERIODO:          "periodo",
+    FECHA_ULTIMO_USO: "fecha_ultimo_uso",
+    OBSERVACIONES:    "observaciones",
+    ESTADO:           "estado",
+  },
 } as const;
 
 // ── Estados de actividad (tabla Personal) ─────────────────────────────────────
@@ -78,3 +88,6 @@ export const ESTADOS_ACTIVIDAD = {
 
 // ── Estado inicial de nuevas solicitudes ──────────────────────────────────────
 export const ESTADO_PENDIENTE = "Pendiente";
+
+// ── Periodo actual de días de pacto ───────────────────────────────────────────
+export const PERIODO_ACTUAL = "2026-S2";
