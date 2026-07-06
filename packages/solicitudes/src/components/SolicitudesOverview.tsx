@@ -20,6 +20,12 @@ const ESTADO_STYLE: Record<string, { bg: string; color: string }> = {
   "No autorizado": { bg: "#fee2e2", color: "#b91c1c" },
 };
 
+const ESTADOS_APROBADOS = ["Concedido", "Aprobado", "Autorizado"];
+
+function esEstadoAprobado(estado: string): boolean {
+  return ESTADOS_APROBADOS.includes(estado);
+}
+
 async function fetchRecientes(idCore: string) {
   const BASE = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
   const KEY  = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
@@ -127,8 +133,10 @@ export async function SolicitudesOverview({ idCore, basePath = "/dashboard/solic
             <tbody className="divide-y divide-gray-50">
               {recientes.map((row, i) => {
                 const style = ESTADO_STYLE[row.estado] ?? { bg: "#f1f5f9", color: "#64748b" };
+                const esAprobado = row.tipo === "Permiso" ? esEstadoAprobado(row.estado) : true;
+                const printClass = esAprobado ? "" : "print:hidden";
                 return (
-                  <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${printClass}`}>
                     <td className="px-6 py-4 font-medium text-gray-700">{row.tipo}</td>
                     <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{row.subtipo}</td>
                     <td className="px-6 py-4 text-gray-500">{row.fecha}</td>
