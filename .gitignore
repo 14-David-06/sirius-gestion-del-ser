@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+docs/SISTEMA-PERMISOS-AUTORIZACION.md
+docs/RESUMEN-SISTEMA-AUTORIZACION.md
+docs/ESTADO-NORMALIZACION.md
+docs/AUTORIZACION-SOLICITUDES.md
+docs/ANALISIS_RBAC.md
+scripts/agregar-autorizacion-texto.js
+scripts/agregar-campo-autorizado-por.js
+scripts/agregar-campos-autorizacion.js
+scripts/agregar-campos-personal.js
+scripts/analizar-estructura-completa.js
+scripts/analizar-roles-permisos.js
+scripts/asignar-accesos-super-admins.js
+scripts/crear-tabla-permisos-autorizacion.js
+scripts/crear-tablas-normalizacion.js
+scripts/poblar-permisos-autorizacion.js
+scripts/poblar-tablas-normalizacion.js

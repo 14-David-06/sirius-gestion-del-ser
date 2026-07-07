@@ -30,6 +30,10 @@ export const FIELDS = {
     DIAS_PACTO_LINK:      "Dias_Pacto",  // Relación multipleRecordLinks → tabla Dias_Pacto
     FIRMA_S3_KEY:         "Firma_S3_Key",
     FECHA_FIRMA_TRAB:     "Fecha_Firma_Trabajador",
+    AUTORIZADO_POR_ID:    "Autorizado_Por_ID",
+    AUTORIZADO_POR_NOM:   "Autorizado_Por_Nombre",
+    FECHA_AUTORIZACION:   "Fecha_Autorizacion",
+    COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
   },
   VACACIONES: {
     NOMBRE:             "Nombre",
@@ -44,6 +48,10 @@ export const FIELDS = {
     ESTADO:             "Estado Solicitud",
     FIRMA_S3_KEY:       "Firma_S3_Key",
     FECHA_FIRMA_TRAB:   "Fecha_Firma_Trabajador",
+    AUTORIZADO_POR_ID:  "Autorizado_Por_ID",
+    AUTORIZADO_POR_NOM: "Autorizado_Por_Nombre",
+    FECHA_AUTORIZACION: "Fecha_Autorizacion",
+    COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
   },
   NOVEDADES: {
     TIPO:           "Tipo de Novedad",
@@ -52,6 +60,10 @@ export const FIELDS = {
     HORAS_EXTRA:    "Número Horas Extras",
     ESTADO:         "Estado del Registro",
     FECHA_CREACION: "Fecha Creación",
+    AUTORIZADO_POR_ID:  "Autorizado_Por_ID",
+    AUTORIZADO_POR_NOM: "Autorizado_Por_Nombre",
+    FECHA_AUTORIZACION: "Fecha_Autorizacion",
+    COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
   },
 } as const;
 
