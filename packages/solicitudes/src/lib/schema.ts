@@ -42,9 +42,12 @@ export const FIELDS = {
     DIAS:               "Dias Vacaciones",
     MOTIVO:             "Motivo",
     ESTADO:             "Estado Solicitud",
+    FIRMA_S3_KEY:       "Firma_S3_Key",
+    FECHA_FIRMA_TRAB:   "Fecha_Firma_Trabajador",
   },
   NOVEDADES: {
     TIPO:           "Tipo de Novedad",
+    OTRA_TIPO:      "Otra Tipo",
     DESCRIPCION:    "Descripción de la Novedad",
     HORAS_EXTRA:    "Número Horas Extras",
     ESTADO:         "Estado del Registro",

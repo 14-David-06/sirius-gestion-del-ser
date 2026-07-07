@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeAirtableValue } from "../lib/security";
 import { TABLES, FIELDS, FK_ID_CORE, ESTADO_PENDIENTE } from "../lib/schema";
-import { TIPO_HORAS_EXTRA } from "../lib/constants";
+import { TIPO_HORAS_EXTRA, TIPO_NOVEDAD_OTRA } from "../lib/constants";
 import type { ResolvePayload } from "../types";
 
 const base = () => process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
@@ -38,6 +38,10 @@ export function createNovedadesHandlers(resolvePayload: ResolvePayload) {
 
     if (body.tipo === TIPO_HORAS_EXTRA && body.horasExtra) {
       fields[FIELDS.NOVEDADES.HORAS_EXTRA] = Number(body.horasExtra);
+    }
+
+    if (body.tipo === TIPO_NOVEDAD_OTRA && body.otraTipo) {
+      fields[FIELDS.NOVEDADES.OTRA_TIPO] = body.otraTipo;
     }
 
     const res = await fetch(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { escapeAirtableValue } from "../lib/security";
 import { TABLES, FIELDS, FK_ID_CORE } from "../lib/schema";
 import type { ResolvePayload } from "../types";
+import { uploadFirmaTrabajador } from "@/lib/s3";
 
 const base = () => process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
 const key  = () => process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
@@ -42,6 +43,34 @@ export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
     };
 
     if (body.fechaReintegro) fields[FIELDS.VACACIONES.FECHA_REINTEGRO] = body.fechaReintegro;
+
+    // Firma del trabajador - Upload a S3
+    if (body.firmaBase64) {
+      try {
+        const uploadResult = await uploadFirmaTrabajador({
+          base64: body.firmaBase64,
+          cedula: payload.cedula,
+          idCore: payload.idCore,
+          tipo: "vacaciones",
+          metadata: {
+            fechaInicio: body.fechaInicio,
+            fechaFin: body.fechaFin,
+            dias: body.dias,
+            fechaSolicitud: today,
+          },
+        });
+
+        // Guardar referencia S3 en Airtable
+        fields[FIELDS.VACACIONES.FIRMA_S3_KEY] = uploadResult.s3Key;
+        fields[FIELDS.VACACIONES.FECHA_FIRMA_TRAB] = uploadResult.uploadedAt;
+      } catch (error) {
+        console.error("[vacaciones POST - S3 upload]", error);
+        return NextResponse.json(
+          { error: "Error al guardar firma digital" },
+          { status: 500 }
+        );
+      }
+    }
 
     const res = await fetch(
       `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.VACACIONES)}`,

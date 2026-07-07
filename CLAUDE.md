@@ -182,17 +182,51 @@ import { TIPOS_PERMISO, TIPOS_NOVEDAD, TIPO_HORAS_EXTRA } from "@/lib/constants"
 
 ```typescript
 "use client"
+import { VoiceNoteButton } from "@sirius/solicitudes";
+import { FirmaCanvas } from "@sirius/solicitudes";
+
 export default function FormPage() {
-  const [me, setMe] = useState<Me | null>(null)
-  useEffect(() => { fetch("/api/me").then(r => r.json()).then(setMe) }, [])
-  // submit deshabilitado hasta que me !== null
+  const [me, setMe] = useState<Me | null>(null);
+  const [firmaBlob, setFirmaBlob] = useState<Blob | null>(null);
+  const [firmaConfirmada, setFirmaConfirmada] = useState(false);
+  
+  useEffect(() => { fetch("/api/me").then(r => r.json()).then(setMe) }, []);
+  
+  // submit deshabilitado hasta que me !== null Y firmaConfirmada === true
   // campos auto: readonlyCls (bg-gray-50, no editables)
   // campos usuario: inputCls (focus ring en color del módulo)
-  // éxito: reemplaza form con confirmación + acciones
+  // nota de voz: encima de campos de texto largo (motivo, descripción)
+  // firma digital: sección final obligatoria antes del botón enviar
+  // éxito: reemplaza form con confirmación + botones "Nueva solicitud" + "Ver solicitudes"
 }
 ```
 
 Colores por sub-módulo: Permiso `#1a51a8` · Vacaciones `#6bb543` · Novedades `#e07b39`
+
+### Funcionalidades estándar en formularios (2026-07+)
+
+#### 1. Nota de voz (Web Speech API)
+- **Componente**: `VoiceNoteButton` de `@sirius/solicitudes`
+- **Ubicación**: Encima de campos de texto largo (motivo, descripción, comentario)
+- **Idioma**: Español colombiano (`es-CO`)
+- **Comportamiento**: Transcripción se agrega al campo de texto, permitiendo edición manual posterior
+- **Compatibilidad**: Chrome, Edge, Opera, Safari 14.1+ (no Firefox)
+
+#### 2. Firma digital del trabajador
+- **Componente**: `FirmaCanvas` de `@sirius/solicitudes`
+- **Ubicación**: Sección final del formulario, antes del botón de envío
+- **Obligatoriedad**: ✅ Botón "Enviar" deshabilitado sin firma confirmada
+- **Almacenamiento**:
+  - Frontend: captura como PNG blob
+  - Backend: convierte a base64, upload a S3 vía `uploadFirmaTrabajador()`
+  - Airtable: guarda referencia S3 (`Firma_S3_Key` + `Fecha_Firma_Trabajador`)
+- **NO guardar**: base64 directamente en Airtable — solo la ruta S3
+
+#### 3. Pantalla de éxito
+- **Diseño**: Icono verde + título + descripción + 2 botones
+- **Botones**:
+  1. "Nueva solicitud" — reinicia el formulario para otra solicitud
+  2. "Ver mis solicitudes" — redirige a overview de solicitudes
 
 ## Sistema de Autenticación
 
@@ -262,6 +296,34 @@ const safe = escapeAirtableValue(valor); // elimina chars de control, escapa \\ 
 const formula = `{Campo}='${safe}'`;
 ```
 
+### uploadFirmaTrabajador() — Upload de firmas digitales a S3
+
+```typescript
+import { uploadFirmaTrabajador } from "@/lib/s3";
+
+// En el handler POST de solicitudes
+if (body.firmaBase64) {
+  const uploadResult = await uploadFirmaTrabajador({
+    base64: body.firmaBase64,
+    cedula: payload.cedula,
+    idCore: payload.idCore,
+    tipo: "permiso" | "vacaciones" | "novedades",  // tipo de solicitud
+    metadata: {
+      // campos relevantes del formulario para trazabilidad
+      tipoPermiso: body.tipo,
+      fechaSolicitud: today,
+      // ...otros campos contextuales
+    },
+  });
+
+  // Guardar SOLO la referencia S3 en Airtable (NO el base64)
+  fields[FIELDS.XXX.FIRMA_S3_KEY] = uploadResult.s3Key;
+  fields[FIELDS.XXX.FECHA_FIRMA_TRAB] = uploadResult.uploadedAt;
+}
+```
+
+**Estructura S3**: `firmas/{tipo}/{año}/{mes}/{idCore}_{cedula}_{fecha}_{uuid}.png`
+
 ### signJWT() / verifyJWT() — Web Crypto API, edge-compatible
 
 ```typescript
@@ -305,6 +367,12 @@ AIRTABLE_TABLE_SOLICITUD_PERMISO=Solicitud_Permiso
 AIRTABLE_TABLE_SOLICITUD_VACACIONES=Solicitud_Vacaciones
 AIRTABLE_TABLE_NOVEDADES_NOMINA=Reportes Novedades Nomina
 
+# S3 (firmas digitales)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+S3_BUCKET_FIRMAS=sirius-firmas-empleados
+
 # Pendientes
 ANTHROPIC_API_KEY=
 ```
@@ -325,6 +393,12 @@ npx tsc --noEmit         # Type-check (ignorar errores de .next/types — caché
 2. **No separar el monorepo** — todo bajo `src/` con App Router
 3. **`escapeAirtableValue()`** siempre antes de interpolar en fórmulas Airtable
 4. **`payload.idCore` como FK** — nunca `payload.sub` fuera de tabla Personal
+5. **Formularios de solicitudes** — SIEMPRE incluir:
+   - Nota de voz (`VoiceNoteButton`) en campos de texto largo
+   - Firma digital (`FirmaCanvas`) obligatoria antes de enviar
+   - Upload de firma a S3 (NO guardar base64 en Airtable)
+   - Pantalla de éxito con botones "Nueva solicitud" + "Ver solicitudes"
+   - Campos Airtable: `Firma_S3_Key` (text) + `Fecha_Firma_Trabajador` (date)
 5. **Campos auto-llenados** — nombre, cédula, cargo, idCore nunca se piden al usuario con sesión activa
 6. **Español colombiano** — UI, mensajes de error y comentarios
 7. **Minimal changes** — no refactorizar lo que funciona sin pedido explícito

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TIPOS_PERMISO, TIPO_DIA_PACTO } from "../lib/constants";
 import { CalendarioPermiso } from "./CalendarioPermiso";
 import { FirmaCanvas } from "./FirmaCanvas";
+import { VoiceNoteButton } from "./VoiceNoteButton";
 
 interface Props {
   apiBasePath?: string;
@@ -361,14 +362,23 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
           )}
 
           <Field label="Motivo *">
-            <textarea
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              required
-              rows={3}
-              placeholder="Describe brevemente el motivo del permiso..."
-              className={inputCls + " resize-none"}
-            />
+            <div className="flex flex-col gap-3">
+              <VoiceNoteButton
+                onTranscript={(transcript) => {
+                  // Agregar transcripción al final del texto actual
+                  setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
+                }}
+                disabled={loading}
+              />
+              <textarea
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                required
+                rows={3}
+                placeholder="Describe brevemente el motivo del permiso..."
+                className={inputCls + " resize-none"}
+              />
+            </div>
           </Field>
 
           {/* Firma del trabajador */}

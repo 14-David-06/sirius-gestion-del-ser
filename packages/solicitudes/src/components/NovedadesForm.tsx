@@ -2,7 +2,8 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
-import { TIPOS_NOVEDAD, TIPO_HORAS_EXTRA } from "../lib/constants";
+import { TIPOS_NOVEDAD, TIPO_HORAS_EXTRA, TIPO_NOVEDAD_OTRA } from "../lib/constants";
+import { VoiceNoteButton } from "./VoiceNoteButton";
 
 interface Props {
   apiBasePath?: string;
@@ -28,6 +29,7 @@ export function NovedadesForm({ apiBasePath = "", basePath = "/dashboard/solicit
   const [tipo, setTipo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [horasExtra, setHorasExtra] = useState("");
+  const [otraTipo, setOtraTipo] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -37,12 +39,18 @@ export function NovedadesForm({ apiBasePath = "", basePath = "/dashboard/solicit
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!tipo || !descripcion) { setError("Selecciona el tipo y agrega una descripción."); return; }
+    if (tipo === TIPO_NOVEDAD_OTRA && !otraTipo) { setError("Especifica el tipo de novedad."); return; }
     setError(""); setLoading(true);
     try {
       const res = await fetch(`${apiBasePath}/api/solicitudes/novedades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo, descripcion, horasExtra: tipo === TIPO_HORAS_EXTRA ? horasExtra : undefined }),
+        body: JSON.stringify({
+          tipo,
+          descripcion,
+          horasExtra: tipo === TIPO_HORAS_EXTRA ? horasExtra : undefined,
+          otraTipo: tipo === TIPO_NOVEDAD_OTRA ? otraTipo : undefined,
+        }),
       });
       if (!res.ok) { const d = await res.json(); setError(d.error); return; }
       setSuccess(true);
@@ -59,7 +67,7 @@ export function NovedadesForm({ apiBasePath = "", basePath = "/dashboard/solicit
         <h2 className="text-xl font-bold text-gray-800">Novedad reportada</h2>
         <p className="text-gray-500 text-sm">Tu novedad fue registrada. El área de nómina la revisará.</p>
         <div className="flex gap-3 mt-2">
-          <button onClick={() => { setSuccess(false); setTipo(""); setDescripcion(""); setHorasExtra(""); }} className="px-5 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">Reportar otra</button>
+          <button onClick={() => { setSuccess(false); setTipo(""); setDescripcion(""); setHorasExtra(""); setOtraTipo(""); }} className="px-5 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">Reportar otra</button>
           <Link href={basePath} className="px-5 py-2 rounded-xl text-sm text-white font-medium" style={{ background: "#e07b39" }}>Ver mis solicitudes</Link>
         </div>
       </div>
@@ -103,8 +111,22 @@ export function NovedadesForm({ apiBasePath = "", basePath = "/dashboard/solicit
             </Field>
           )}
 
+          {tipo === TIPO_NOVEDAD_OTRA && (
+            <Field label="Especifica el tipo de novedad *">
+              <input type="text" value={otraTipo} onChange={(e) => setOtraTipo(e.target.value)} required placeholder="Ej: Cambio de EPS..." className={inputCls} />
+            </Field>
+          )}
+
           <Field label="Descripción *">
-            <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required rows={4} placeholder="Describe con detalle la novedad que deseas reportar..." className={inputCls + " resize-none"} />
+            <div className="flex flex-col gap-3">
+              <VoiceNoteButton
+                onTranscript={(transcript) => {
+                  setDescripcion((prev) => (prev ? `${prev} ${transcript}` : transcript));
+                }}
+                disabled={loading}
+              />
+              <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required rows={4} placeholder="Describe con detalle la novedad que deseas reportar..." className={inputCls + " resize-none"} />
+            </div>
           </Field>
         </div>
 

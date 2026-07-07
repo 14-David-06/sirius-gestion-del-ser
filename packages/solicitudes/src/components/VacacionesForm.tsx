@@ -2,6 +2,8 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
+import { VoiceNoteButton } from "./VoiceNoteButton";
+import { FirmaCanvas } from "./FirmaCanvas";
 
 interface Props {
   apiBasePath?: string;
@@ -36,6 +38,8 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
   const [fechaFin, setFechaFin] = useState("");
   const [fechaReintegro, setFechaReintegro] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [firmaBlob, setFirmaBlob] = useState<Blob | null>(null);
+  const [firmaConfirmada, setFirmaConfirmada] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -48,12 +52,39 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
     e.preventDefault();
     if (!fechaInicio || !fechaFin) { setError("Selecciona las fechas de inicio y fin."); return; }
     if (dias <= 0) { setError("La fecha de fin debe ser posterior a la de inicio."); return; }
-    setError(""); setLoading(true);
+
+    if (!firmaConfirmada || !firmaBlob) {
+      setError("Debes firmar la solicitud antes de enviar.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
     try {
+      // Convertir blob a base64
+      const reader = new FileReader();
+      const firmaBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // Extraer solo el base64 sin el prefijo
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(firmaBlob);
+      });
+
       const res = await fetch(`${apiBasePath}/api/solicitudes/vacaciones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fechaInicio, fechaFin, fechaReintegro: fechaReintegro || undefined, dias, motivo, cargo: me?.cargo }),
+        body: JSON.stringify({
+          fechaInicio,
+          fechaFin,
+          fechaReintegro: fechaReintegro || undefined,
+          dias,
+          motivo,
+          cargo: me?.cargo,
+          firmaBase64
+        }),
       });
       if (!res.ok) { const d = await res.json(); setError(d.error); return; }
       setSuccess(true);
@@ -69,7 +100,23 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
         </div>
         <h2 className="text-xl font-bold text-gray-800">Solicitud enviada</h2>
         <p className="text-gray-500 text-sm">Tu solicitud de vacaciones fue registrada. RRHH la revisará y te notificará.</p>
-        <Link href={basePath} className="px-6 py-2.5 rounded-xl text-sm text-white font-medium mt-2" style={{ background: "#6bb543" }}>Ver mis solicitudes</Link>
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => {
+              setSuccess(false);
+              setFechaInicio("");
+              setFechaFin("");
+              setFechaReintegro("");
+              setMotivo("");
+              setFirmaBlob(null);
+              setFirmaConfirmada(false);
+            }}
+            className="px-5 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+          >
+            Nueva solicitud
+          </button>
+          <Link href={basePath} className="px-6 py-2.5 rounded-xl text-sm text-white font-medium" style={{ background: "#6bb543" }}>Ver mis solicitudes</Link>
+        </div>
       </div>
     </div>
   );
@@ -117,13 +164,59 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
           </Field>
 
           <Field label="Motivo o comentario">
-            <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Opcional — agrega contexto si lo consideras necesario." className={inputCls + " resize-none"} />
+            <div className="flex flex-col gap-3">
+              <VoiceNoteButton
+                onTranscript={(transcript) => {
+                  setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
+                }}
+                disabled={loading}
+              />
+              <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Opcional — agrega contexto si lo consideras necesario." className={inputCls + " resize-none"} />
+            </div>
           </Field>
+
+          {/* Firma del trabajador */}
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Firma del trabajador *
+            </p>
+            {!firmaConfirmada ? (
+              <FirmaCanvas
+                onFirmaCapturada={(blob) => {
+                  setFirmaBlob(blob);
+                  setFirmaConfirmada(true);
+                }}
+                onLimpiar={() => {
+                  setFirmaBlob(null);
+                  setFirmaConfirmada(false);
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="border border-green-200 bg-green-50 rounded-xl p-4 flex items-center gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-green-800 font-medium">Firma capturada correctamente</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFirmaBlob(null);
+                    setFirmaConfirmada(false);
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                >
+                  Volver a firmar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
 
-        <button type="submit" disabled={loading || !me} className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "#6bb543" }}>
+        <button type="submit" disabled={loading || !me || !firmaConfirmada} className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "#6bb543" }}>
           {loading ? "Enviando..." : "Enviar solicitud"}
         </button>
       </form>
