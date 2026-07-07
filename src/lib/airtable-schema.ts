@@ -49,6 +49,7 @@ export const FIELDS = {
     COMPENSADO:      "Compensado",
     FECHA_COMP:      "Fecha de compensatorio",
     ESTADO:          "Estado_Permiso",
+    ID_PACTO_REF:    "id_pacto_ref",
   },
   VACACIONES: {
     NOMBRE:              "Nombre",

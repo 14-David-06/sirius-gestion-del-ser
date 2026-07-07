@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
 import { verifyJWT } from "@/lib/auth";
-import { DiasPactoWidget } from "@/components/DiasPactoWidget";
 
 const MODULES = [
   {
@@ -155,13 +153,6 @@ export default async function DashboardPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
           </svg>
         </div>
-      </div>
-
-      {/* ── Widget Días de Pacto ─────────────────────────────────────────────── */}
-      <div className="mb-8">
-        <Suspense fallback={<div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse h-24"></div>}>
-          <DiasPactoWidget />
-        </Suspense>
       </div>
 
       {/* ── Módulos ─────────────────────────────────────────────────────────── */}

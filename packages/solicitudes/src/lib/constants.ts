@@ -1,4 +1,5 @@
 export const TIPOS_PERMISO = [
+  "Día de Pacto",
   "Médico / Cita médica",
   "Personal",
   "Calamidad doméstica",
@@ -20,3 +21,4 @@ export const TIPOS_NOVEDAD = [
 ] as const;
 
 export const TIPO_HORAS_EXTRA = "Horas Extra" as const;
+export const TIPO_DIA_PACTO = "Día de Pacto" as const;

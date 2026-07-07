@@ -15,20 +15,27 @@ export async function GET() {
   try {
     // Fetch registro Personal para obtener el nombre del cargo via Rol vinculado
     const rec = await fetch(
-      `https://api.airtable.com/v0/${BASE_CORE}/${encodeURIComponent(TABLES.PERSONAL)}/${payload.sub}?fields[]=${FIELDS.PERSONAL.ROL}`,
+      `https://api.airtable.com/v0/${BASE_CORE}/${encodeURIComponent(TABLES.PERSONAL)}/${payload.sub}`,
       { headers: { Authorization: `Bearer ${KEY_CORE}` }, cache: "no-store" }
     ).then((r) => r.json());
 
+    console.log("[/api/me] Personal record:", rec);
+
     const rolLinks: string[] = rec?.fields?.[FIELDS.PERSONAL.ROL] ?? [];
+    console.log("[/api/me] Rol links:", rolLinks);
+
     if (rolLinks.length > 0) {
       const rol = await fetch(
-        `https://api.airtable.com/v0/${BASE_CORE}/${encodeURIComponent(TABLES.ROLES)}/${rolLinks[0]}?fields[]=${FIELDS.ROLES.ROL}`,
+        `https://api.airtable.com/v0/${BASE_CORE}/${encodeURIComponent(TABLES.ROLES)}/${rolLinks[0]}`,
         { headers: { Authorization: `Bearer ${KEY_CORE}` }, cache: "no-store" }
       ).then((r) => r.json());
+
+      console.log("[/api/me] Rol record:", rol);
       cargo = rol?.fields?.[FIELDS.ROLES.ROL] ?? "";
+      console.log("[/api/me] Cargo final:", cargo);
     }
-  } catch {
-    // cargo queda vacío si falla — no es bloqueante
+  } catch (error) {
+    console.error("[/api/me] Error fetching cargo:", error);
   }
 
   return NextResponse.json({

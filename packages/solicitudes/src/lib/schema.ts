@@ -14,19 +14,22 @@ export const FK_ID_CORE = "ID Personal Core";
 
 export const FIELDS = {
   PERMISO: {
-    NOMBRE:          "Nombre",
-    CEDULA:          "Cedula",
-    CARGO:           "Cargo",
-    FECHA_SOLICITUD: "Fecha de solicitud",
-    TIPO:            "Tipo_Permiso",
-    FECHA_INICIO:    "Fecha de permiso",
-    FECHA_FIN:       "Fecha fin de permiso",
-    HORAS:           "Horas_Permiso",
-    MOTIVO:          "Motivo_Permiso",
-    REMUNERADO:      "Remunerado",
-    COMPENSADO:      "Compensado",
-    FECHA_COMP:      "Fecha de compensatorio",
-    ESTADO:          "Estado_Permiso",
+    NOMBRE:               "Nombre",
+    CEDULA:               "Cedula",
+    CARGO:                "Cargo",
+    FECHA_SOLICITUD:      "Fecha de solicitud",
+    TIPO:                 "Tipo_Permiso",
+    FECHA_INICIO:         "Fecha de permiso",
+    FECHA_FIN:            "Fecha fin de permiso",
+    HORAS:                "Horas Permiso",
+    MOTIVO:               "Motivo_Permiso",
+    REMUNERADO:           "Remunerado",
+    COMPENSADO:           "Compensado",
+    FECHA_COMP:           "Fecha de compensatorio",
+    ESTADO:               "Estado_Permiso",
+    DIAS_PACTO_LINK:      "Dias_Pacto",  // Relación multipleRecordLinks → tabla Dias_Pacto
+    FIRMA_S3_KEY:         "Firma_S3_Key",
+    FECHA_FIRMA_TRAB:     "Fecha_Firma_Trabajador",
   },
   VACACIONES: {
     NOMBRE:             "Nombre",
@@ -50,3 +53,4 @@ export const FIELDS = {
 } as const;
 
 export const ESTADO_PENDIENTE = "Pendiente";
+export const PERIODO_ACTUAL = "2026-S2";
