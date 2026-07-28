@@ -3,17 +3,16 @@
 import { useState, useEffect, FormEvent } from "react";
 import { VoiceNoteButton } from "./VoiceNoteButton";
 import { FirmaSection } from "./FirmaSection";
+import { CalendarioPermiso } from "./CalendarioPermiso";
 import {
   DatosEmpleado,
   ErrorMsg,
   Field,
   FormHeader,
-  Icon,
   MODULOS,
   SectionTitle,
   SubmitButton,
   SuccessCard,
-  formatFecha,
   inputCls,
 } from "./ui";
 
@@ -27,18 +26,10 @@ type Me = { nombre: string; cedula: string; idCore: string; cargo: string };
 const COLOR = MODULOS.vacaciones.color;
 const CLS = inputCls("vacaciones");
 
-function calcDias(inicio: string, fin: string): number {
-  if (!inicio || !fin) return 0;
-  const d1 = new Date(inicio + "T12:00:00");
-  const d2 = new Date(fin + "T12:00:00");
-  if (d2 < d1) return 0;
-  return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1);
-}
-
 export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solicitudes" }: Props) {
   const [me, setMe] = useState<Me | null>(null);
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
+  // El calendario en modo rango devuelve todos los días del período, no solo los extremos.
+  const [fechas, setFechas] = useState<string[]>([]);
   const [fechaReintegro, setFechaReintegro] = useState("");
   const [motivo, setMotivo] = useState("");
   const [firmaBlob, setFirmaBlob] = useState<Blob | null>(null);
@@ -51,12 +42,13 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
     fetch(`${apiBasePath}/api/me`).then((r) => r.json()).then(setMe);
   }, [apiBasePath]);
 
-  const dias = calcDias(fechaInicio, fechaFin);
+  const fechaInicio = fechas[0] ?? "";
+  const fechaFin = fechas[fechas.length - 1] ?? "";
+  const dias = fechas.length;
 
   function resetForm() {
     setSuccess(false);
-    setFechaInicio("");
-    setFechaFin("");
+    setFechas([]);
     setFechaReintegro("");
     setMotivo("");
     setFirmaBlob(null);
@@ -65,8 +57,7 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!fechaInicio || !fechaFin) { setError("Selecciona las fechas de inicio y fin."); return; }
-    if (dias <= 0) { setError("La fecha de fin debe ser posterior a la de inicio."); return; }
+    if (dias === 0) { setError("Selecciona en el calendario los días de vacaciones."); return; }
 
     if (!firmaConfirmada || !firmaBlob) {
       setError("Debes firmar la solicitud antes de enviar.");
@@ -149,40 +140,16 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
               Período de vacaciones
             </SectionTitle>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Fecha de inicio *">
-                <input
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  required
-                  className={CLS}
-                />
-              </Field>
-              <Field label="Fecha de fin *">
-                <input
-                  type="date"
-                  value={fechaFin}
-                  min={fechaInicio}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                  required
-                  className={CLS}
-                />
-              </Field>
-            </div>
-
-            {dias > 0 && (
-              <div
-                className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium"
-                style={{ background: "#f0fdf4", color: "#15803d" }}
-              >
-                <Icon path={MODULOS.vacaciones.icon} className="h-4 w-4" strokeWidth={1.8} />
-                {dias} día{dias !== 1 ? "s" : ""} calendario
-                <span className="font-normal opacity-70">
-                  · {formatFecha(fechaInicio)} → {formatFecha(fechaFin)}
-                </span>
-              </div>
-            )}
+            <Field label="Días de vacaciones *" hint="selecciona el primer y último día">
+              <CalendarioPermiso
+                modo="rango"
+                color={COLOR}
+                fechasSeleccionadas={fechas}
+                onChange={setFechas}
+                excluirDomingos
+                excluirFestivos
+              />
+            </Field>
 
             <Field label="Fecha de reintegro" hint="opcional">
               <input

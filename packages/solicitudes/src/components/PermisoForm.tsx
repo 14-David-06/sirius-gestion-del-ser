@@ -15,7 +15,6 @@ import {
   SectionTitle,
   SubmitButton,
   SuccessCard,
-  formatFecha,
   inputCls,
 } from "./ui";
 
@@ -349,22 +348,6 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
                     className={CLS}
                   />
                 </Field>
-              </div>
-            )}
-
-            {/* Resumen de días seleccionados */}
-            {modalidad === "dias" && fechasSeleccionadas.length > 0 && (
-              <div
-                className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium"
-                style={{ background: `${COLOR}0d`, color: COLOR }}
-              >
-                <Icon path={MODULOS.vacaciones.icon} className="h-4 w-4" strokeWidth={1.8} />
-                {fechasSeleccionadas.length} día{fechasSeleccionadas.length !== 1 ? "s" : ""}
-                <span className="font-normal opacity-70">
-                  · {formatFecha(fechasSeleccionadas[0])}
-                  {fechasSeleccionadas.length > 1 &&
-                    ` → ${formatFecha(fechasSeleccionadas[fechasSeleccionadas.length - 1])}`}
-                </span>
               </div>
             )}
 

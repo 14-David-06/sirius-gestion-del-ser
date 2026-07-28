@@ -1,13 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT, MODULOS } from "./ui";
+import { esFestivo } from "../lib/festivos";
+import { Icon, ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT, MODULOS, formatFecha } from "./ui";
+
+/**
+ * `multiple` — días independientes (permisos, días de pacto).
+ * `rango`    — período: el primer clic fija el inicio y el segundo el fin. Una vez
+ *              cerrado el período, cada clic agrega o quita un día puntual.
+ */
+type Modo = "multiple" | "rango";
 
 interface Props {
+  /** Todas las fechas seleccionadas en ISO "YYYY-MM-DD". En modo rango incluye los días intermedios. */
   fechasSeleccionadas: string[];
   onChange: (fechas: string[]) => void;
   maxDias?: number; // Límite máximo de días seleccionables
+  modo?: Modo;
   color?: string;
+  /** Bloquea domingos — no son días hábiles para vacaciones (Art. 186 CST). */
+  excluirDomingos?: boolean;
+  /** Bloquea festivos colombianos. */
+  excluirFestivos?: boolean;
 }
 
 const NOMBRES_MESES = [
@@ -22,17 +36,39 @@ function toISODate(anio: number, mes: number, dia: number): string {
   return `${anio}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
+/** Expande un rango inclusivo a la lista de días que contiene. */
+function expandirRango(desde: string, hasta: string): string[] {
+  const fechas: string[] = [];
+  const cursor = new Date(desde + "T12:00:00");
+  const fin = new Date(hasta + "T12:00:00");
+  while (cursor <= fin) {
+    fechas.push(toISODate(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return fechas;
+}
+
 export function CalendarioPermiso({
   fechasSeleccionadas,
   onChange,
   maxDias,
+  modo = "multiple",
   color = MODULOS.permiso.color,
+  excluirDomingos = false,
+  excluirFestivos = false,
 }: Props) {
   const hoy = new Date();
   const [mesActual, setMesActual] = useState(hoy.getMonth());
   const [anioActual, setAnioActual] = useState(hoy.getFullYear());
+  // Modo rango: primer día elegido mientras esperamos el segundo clic.
+  const [anclaPendiente, setAnclaPendiente] = useState<string | null>(null);
 
-  const limiteAlcanzado = maxDias !== undefined && fechasSeleccionadas.length >= maxDias;
+  const esRango = modo === "rango";
+  const limiteAlcanzado =
+    !esRango && maxDias !== undefined && fechasSeleccionadas.length >= maxDias;
+
+  const primera = fechasSeleccionadas[0];
+  const ultima = fechasSeleccionadas[fechasSeleccionadas.length - 1];
 
   function obtenerDiasDelMes(mes: number, anio: number): (number | null)[] {
     const primerDia = new Date(anio, mes, 1);
@@ -52,20 +88,69 @@ export function CalendarioPermiso({
     return dias;
   }
 
-  function toggleFecha(dia: number) {
-    const fechaStr = toISODate(anioActual, mesActual, dia);
+  /** Motivo por el que una fecha no se puede elegir, o null si está disponible. */
+  function motivoNoDisponible(iso: string): "domingo" | "festivo" | null {
+    if (excluirDomingos && new Date(iso + "T12:00:00").getDay() === 0) return "domingo";
+    if (excluirFestivos && esFestivo(iso)) return "festivo";
+    return null;
+  }
 
+  function toggleDia(fechaStr: string) {
     if (fechasSeleccionadas.includes(fechaStr)) {
       onChange(fechasSeleccionadas.filter((f) => f !== fechaStr));
-    } else {
-      // Seleccionar solo si no se alcanzó el máximo
-      if (limiteAlcanzado) return;
-      onChange([...fechasSeleccionadas, fechaStr].sort());
+      return;
     }
+    if (maxDias !== undefined && fechasSeleccionadas.length >= maxDias) return;
+    onChange([...fechasSeleccionadas, fechaStr].sort());
+  }
+
+  function clickDia(dia: number) {
+    const fechaStr = toISODate(anioActual, mesActual, dia);
+
+    if (esRango) {
+      // Con ancla: cerramos el período (el orden lo resuelve el sort) y descartamos
+      // los días no hábiles que caigan dentro.
+      if (anclaPendiente) {
+        const [desde, hasta] = [anclaPendiente, fechaStr].sort();
+        const rango = expandirRango(desde, hasta).filter((f) => !motivoNoDisponible(f));
+        if (maxDias !== undefined && rango.length > maxDias) return;
+
+        onChange(rango);
+        setAnclaPendiente(null);
+        return;
+      }
+
+      // Sin nada seleccionado: este clic abre un período nuevo.
+      if (fechasSeleccionadas.length === 0) {
+        setAnclaPendiente(fechaStr);
+        onChange([fechaStr]);
+        return;
+      }
+
+      // Período ya cerrado: cada clic ajusta un día puntual.
+      toggleDia(fechaStr);
+      return;
+    }
+
+    toggleDia(fechaStr);
+  }
+
+  function limpiar() {
+    setAnclaPendiente(null);
+    onChange([]);
   }
 
   function esFechaSeleccionada(dia: number): boolean {
     return fechasSeleccionadas.includes(toISODate(anioActual, mesActual, dia));
+  }
+
+  /** En modo rango, los extremos se pintan sólidos y el interior suave. */
+  function posicionEnRango(dia: number): "inicio" | "fin" | "medio" | "unico" {
+    const f = toISODate(anioActual, mesActual, dia);
+    if (fechasSeleccionadas.length === 1) return "unico";
+    if (f === primera) return "inicio";
+    if (f === ultima) return "fin";
+    return "medio";
   }
 
   function esFechaPasada(dia: number): boolean {
@@ -119,6 +204,17 @@ export function CalendarioPermiso({
         </button>
       </div>
 
+      {/* Instrucción en modo rango */}
+      {esRango && (
+        <p className="mb-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-xs text-gray-500">
+          {anclaPendiente
+            ? "Ahora selecciona el último día del período"
+            : fechasSeleccionadas.length === 0
+              ? "Selecciona el primer día del período"
+              : "Haz clic en un día para agregarlo o quitarlo"}
+        </p>
+      )}
+
       {/* Nombres de días */}
       <div className="mb-1 grid grid-cols-7 gap-1">
         {NOMBRES_DIAS.map((nombre, i) => (
@@ -140,30 +236,62 @@ export function CalendarioPermiso({
             return <div key={`empty-${idx}`} className="aspect-square" />;
           }
 
+          const iso = toISODate(anioActual, mesActual, dia);
           const seleccionado = esFechaSeleccionada(dia);
           const pasado = esFechaPasada(dia);
-          const bloqueado = pasado || (limiteAlcanzado && !seleccionado);
+          const noDisponible = motivoNoDisponible(iso);
+          const bloqueado = pasado || !!noDisponible || (limiteAlcanzado && !seleccionado);
+
+          // En modo rango el interior del período se pinta suave.
+          const pos = seleccionado && esRango ? posicionEnRango(dia) : null;
+          const esExtremo = !esRango || pos === "inicio" || pos === "fin" || pos === "unico";
+
+          let estilo: React.CSSProperties | undefined;
+          if (seleccionado) {
+            estilo = esExtremo
+              ? { background: color, color: "#fff" }
+              : { background: `${color}1f`, color };
+          }
 
           return (
             <button
               key={dia}
               type="button"
-              onClick={() => !bloqueado && toggleFecha(dia)}
+              onClick={() => !bloqueado && clickDia(dia)}
               disabled={bloqueado}
               aria-pressed={seleccionado}
-              className={`relative flex aspect-square items-center justify-center rounded-lg text-sm font-medium transition-all ${
+              aria-label={
+                noDisponible === "festivo"
+                  ? `${dia} — festivo, no disponible`
+                  : noDisponible === "domingo"
+                    ? `${dia} — domingo, no disponible`
+                    : undefined
+              }
+              title={
+                noDisponible === "festivo"
+                  ? "Festivo — no disponible"
+                  : noDisponible === "domingo"
+                    ? "Domingo — no disponible"
+                    : undefined
+              }
+              className={`relative flex aspect-square items-center justify-center text-sm font-medium transition-all ${
+                seleccionado && !esExtremo ? "rounded-none" : "rounded-lg"
+              } ${
                 seleccionado
-                  ? "text-white shadow-sm"
-                  : pasado
-                    ? "cursor-not-allowed text-gray-300"
-                    : limiteAlcanzado
+                  ? "shadow-sm"
+                  : noDisponible
+                    ? "cursor-not-allowed bg-gray-50 text-gray-300 line-through decoration-gray-300"
+                    : bloqueado
                       ? "cursor-not-allowed text-gray-300"
                       : "text-gray-700 hover:bg-gray-100 active:scale-95"
               }`}
-              style={seleccionado ? { background: color } : undefined}
+              style={estilo}
             >
               {dia}
-              {esHoy(dia) && !seleccionado && (
+              {noDisponible === "festivo" && (
+                <span className="absolute bottom-1 h-1 w-1 rounded-full bg-red-300" />
+              )}
+              {esHoy(dia) && !seleccionado && !noDisponible && (
                 <span
                   className="absolute bottom-1 h-1 w-1 rounded-full"
                   style={{ background: color }}
@@ -174,16 +302,63 @@ export function CalendarioPermiso({
         })}
       </div>
 
-      {/* Contador de días */}
-      {(fechasSeleccionadas.length > 0 || maxDias) && (
-        <div className="mt-3 flex items-center justify-center gap-1.5 border-t border-gray-100 pt-3 text-sm text-gray-600">
-          <span className="font-semibold" style={{ color }}>
-            {fechasSeleccionadas.length}
+      {/* Leyenda de días no disponibles */}
+      {(excluirDomingos || excluirFestivos) && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-gray-100 ring-1 ring-gray-200" />
+            No disponible
           </span>
-          {maxDias ? <span className="text-gray-400">de {maxDias}</span> : null}
-          <span>{fechasSeleccionadas.length === 1 ? "día seleccionado" : "días seleccionados"}</span>
+          {excluirFestivos && (
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-300" />
+              Festivo
+            </span>
+          )}
+          <span className="text-gray-400">
+            {excluirDomingos && excluirFestivos
+              ? "Los domingos y festivos no cuentan como días de vacaciones."
+              : excluirDomingos
+                ? "Los domingos no cuentan."
+                : "Los festivos no cuentan."}
+          </span>
         </div>
       )}
+
+      {/* Resumen de la selección */}
+      {fechasSeleccionadas.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
+          <div className="flex flex-wrap items-baseline gap-1.5 text-sm text-gray-600">
+            <span className="font-semibold" style={{ color }}>
+              {fechasSeleccionadas.length}
+            </span>
+            {!esRango && maxDias ? <span className="text-gray-400">de {maxDias}</span> : null}
+            <span>
+              {fechasSeleccionadas.length === 1 ? "día" : "días"}
+              {excluirDomingos || excluirFestivos ? " hábiles" : ""}
+            </span>
+            {esRango && fechasSeleccionadas.length > 1 && (
+              <span className="text-xs text-gray-400">
+                · {formatFecha(primera)} → {formatFecha(ultima)}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={limpiar}
+            className="text-xs font-medium text-gray-400 underline underline-offset-2 transition-colors hover:text-gray-600"
+          >
+            Limpiar
+          </button>
+        </div>
+      )}
+
+      {/* Contador vacío cuando hay un tope definido */}
+      {fechasSeleccionadas.length === 0 && !esRango && maxDias ? (
+        <p className="mt-3 border-t border-gray-100 pt-3 text-center text-sm text-gray-400">
+          0 de {maxDias} días seleccionados
+        </p>
+      ) : null}
     </div>
   );
 }

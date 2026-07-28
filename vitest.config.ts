@@ -10,7 +10,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: [
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "packages/*/src/**/*.test.ts",
+      "packages/*/src/**/*.test.tsx",
+    ],
     passWithNoTests: true,
     coverage: {
       provider: "v8",
