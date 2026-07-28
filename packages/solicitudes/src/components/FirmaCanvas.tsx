@@ -1,13 +1,19 @@
 "use client";
 
 import { useRef, useState, useEffect, MouseEvent, TouchEvent } from "react";
+import { Icon, ICON_CHECK, MODULOS } from "./ui";
 
 interface Props {
   onFirmaCapturada: (blob: Blob) => void;
   onLimpiar?: () => void;
+  color?: string;
 }
 
-export function FirmaCanvas({ onFirmaCapturada, onLimpiar }: Props) {
+export function FirmaCanvas({
+  onFirmaCapturada,
+  onLimpiar,
+  color = MODULOS.permiso.color,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [estaDibujando, setEstaDibujando] = useState(false);
   const [hayFirma, setHayFirma] = useState(false);
@@ -117,7 +123,15 @@ export function FirmaCanvas({ onFirmaCapturada, onLimpiar }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-white">
+      <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 bg-white transition-colors hover:border-gray-300">
+        {/* Guía de firma — encima del canvas (que se rellena de blanco), sin capturar eventos */}
+        <div className="pointer-events-none absolute inset-x-6 bottom-9 z-10 border-b border-dashed border-gray-200" />
+        {!hayFirma && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-3 z-10 text-center text-[11px] text-gray-300">
+            Firma aquí
+          </p>
+        )}
+
         <canvas
           ref={canvasRef}
           onMouseDown={iniciarDibujo}
@@ -127,7 +141,7 @@ export function FirmaCanvas({ onFirmaCapturada, onLimpiar }: Props) {
           onTouchStart={iniciarDibujo}
           onTouchMove={dibujar}
           onTouchEnd={detenerDibujo}
-          className="w-full h-40 touch-none cursor-crosshair"
+          className="relative h-40 w-full cursor-crosshair touch-none bg-transparent"
           style={{ touchAction: "none" }}
         />
       </div>
@@ -137,7 +151,7 @@ export function FirmaCanvas({ onFirmaCapturada, onLimpiar }: Props) {
           type="button"
           onClick={limpiar}
           disabled={!hayFirma}
-          className="flex-1 px-4 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Limpiar
         </button>
@@ -145,14 +159,15 @@ export function FirmaCanvas({ onFirmaCapturada, onLimpiar }: Props) {
           type="button"
           onClick={capturarFirma}
           disabled={!hayFirma}
-          className="flex-1 px-4 py-2 rounded-xl text-sm text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: "#1a51a8" }}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:brightness-100"
+          style={{ background: color }}
         >
+          <Icon path={ICON_CHECK} className="h-4 w-4" strokeWidth={2.5} />
           Confirmar firma
         </button>
       </div>
 
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-center text-xs text-gray-400">
         Dibuja tu firma con el mouse o con el dedo en dispositivos táctiles
       </p>
     </div>

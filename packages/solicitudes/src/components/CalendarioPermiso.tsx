@@ -1,24 +1,38 @@
 "use client";
 
 import { useState } from "react";
+import { Icon, ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT, MODULOS } from "./ui";
 
 interface Props {
   fechasSeleccionadas: string[];
   onChange: (fechas: string[]) => void;
   maxDias?: number; // Límite máximo de días seleccionables
+  color?: string;
 }
 
-export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Props) {
+const NOMBRES_MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+const NOMBRES_DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+/** Convierte a "YYYY-MM-DD" en zona local — toISOString() desfasa el día. */
+function toISODate(anio: number, mes: number, dia: number): string {
+  return `${anio}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+}
+
+export function CalendarioPermiso({
+  fechasSeleccionadas,
+  onChange,
+  maxDias,
+  color = MODULOS.permiso.color,
+}: Props) {
   const hoy = new Date();
   const [mesActual, setMesActual] = useState(hoy.getMonth());
   const [anioActual, setAnioActual] = useState(hoy.getFullYear());
 
-  const nombresMeses = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ];
-
-  const nombresDias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const limiteAlcanzado = maxDias !== undefined && fechasSeleccionadas.length >= maxDias;
 
   function obtenerDiasDelMes(mes: number, anio: number): (number | null)[] {
     const primerDia = new Date(anio, mes, 1);
@@ -39,25 +53,19 @@ export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Pr
   }
 
   function toggleFecha(dia: number) {
-    const fecha = new Date(anioActual, mesActual, dia);
-    const fechaStr = fecha.toISOString().split("T")[0];
+    const fechaStr = toISODate(anioActual, mesActual, dia);
 
     if (fechasSeleccionadas.includes(fechaStr)) {
-      // Deseleccionar
       onChange(fechasSeleccionadas.filter((f) => f !== fechaStr));
     } else {
       // Seleccionar solo si no se alcanzó el máximo
-      if (maxDias && fechasSeleccionadas.length >= maxDias) {
-        return; // No permitir más selecciones
-      }
+      if (limiteAlcanzado) return;
       onChange([...fechasSeleccionadas, fechaStr].sort());
     }
   }
 
   function esFechaSeleccionada(dia: number): boolean {
-    const fecha = new Date(anioActual, mesActual, dia);
-    const fechaStr = fecha.toISOString().split("T")[0];
-    return fechasSeleccionadas.includes(fechaStr);
+    return fechasSeleccionadas.includes(toISODate(anioActual, mesActual, dia));
   }
 
   function esFechaPasada(dia: number): boolean {
@@ -66,6 +74,12 @@ export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Pr
     const hoyInicio = new Date();
     hoyInicio.setHours(0, 0, 0, 0);
     return fecha < hoyInicio;
+  }
+
+  function esHoy(dia: number): boolean {
+    return (
+      dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear()
+    );
   }
 
   function cambiarMes(delta: number) {
@@ -85,40 +99,35 @@ export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Pr
   }
 
   const dias = obtenerDiasDelMes(mesActual, anioActual);
+  const navBtn =
+    "flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700";
 
   return (
-    <div className="border border-gray-200 rounded-xl p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       {/* Header del calendario */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={() => cambiarMes(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
+      <div className="mb-4 flex items-center justify-between">
+        <button type="button" onClick={() => cambiarMes(-1)} aria-label="Mes anterior" className={navBtn}>
+          <Icon path={ICON_CHEVRON_LEFT} className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
 
         <div className="text-sm font-semibold text-gray-800">
-          {nombresMeses[mesActual]} {anioActual}
+          {NOMBRES_MESES[mesActual]} <span className="font-normal text-gray-400">{anioActual}</span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => cambiarMes(1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+        <button type="button" onClick={() => cambiarMes(1)} aria-label="Mes siguiente" className={navBtn}>
+          <Icon path={ICON_CHEVRON_RIGHT} className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
       </div>
 
       {/* Nombres de días */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {nombresDias.map((nombre) => (
-          <div key={nombre} className="text-center text-xs font-medium text-gray-400 py-1">
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {NOMBRES_DIAS.map((nombre, i) => (
+          <div
+            key={nombre}
+            className={`py-1 text-center text-[11px] font-medium uppercase tracking-wide ${
+              i === 0 || i === 6 ? "text-gray-300" : "text-gray-400"
+            }`}
+          >
             {nombre}
           </div>
         ))}
@@ -133,24 +142,33 @@ export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Pr
 
           const seleccionado = esFechaSeleccionada(dia);
           const pasado = esFechaPasada(dia);
+          const bloqueado = pasado || (limiteAlcanzado && !seleccionado);
 
           return (
             <button
               key={dia}
               type="button"
-              onClick={() => !pasado && toggleFecha(dia)}
-              disabled={pasado}
-              className={`
-                aspect-square rounded-lg text-sm font-medium transition-all
-                ${seleccionado
-                  ? "bg-[#1a51a8] text-white shadow-sm"
+              onClick={() => !bloqueado && toggleFecha(dia)}
+              disabled={bloqueado}
+              aria-pressed={seleccionado}
+              className={`relative flex aspect-square items-center justify-center rounded-lg text-sm font-medium transition-all ${
+                seleccionado
+                  ? "text-white shadow-sm"
                   : pasado
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "text-gray-700 hover:bg-gray-100"
-                }
-              `}
+                    ? "cursor-not-allowed text-gray-300"
+                    : limiteAlcanzado
+                      ? "cursor-not-allowed text-gray-300"
+                      : "text-gray-700 hover:bg-gray-100 active:scale-95"
+              }`}
+              style={seleccionado ? { background: color } : undefined}
             >
               {dia}
+              {esHoy(dia) && !seleccionado && (
+                <span
+                  className="absolute bottom-1 h-1 w-1 rounded-full"
+                  style={{ background: color }}
+                />
+              )}
             </button>
           );
         })}
@@ -158,12 +176,12 @@ export function CalendarioPermiso({ fechasSeleccionadas, onChange, maxDias }: Pr
 
       {/* Contador de días */}
       {(fechasSeleccionadas.length > 0 || maxDias) && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-600 text-center">
-            <span className="font-semibold text-[#1a51a8]">{fechasSeleccionadas.length}</span>
-            {maxDias ? ` de ${maxDias}` : ""}{" "}
-            {fechasSeleccionadas.length === 1 ? "día seleccionado" : "días seleccionados"}
-          </p>
+        <div className="mt-3 flex items-center justify-center gap-1.5 border-t border-gray-100 pt-3 text-sm text-gray-600">
+          <span className="font-semibold" style={{ color }}>
+            {fechasSeleccionadas.length}
+          </span>
+          {maxDias ? <span className="text-gray-400">de {maxDias}</span> : null}
+          <span>{fechasSeleccionadas.length === 1 ? "día seleccionado" : "días seleccionados"}</span>
         </div>
       )}
     </div>

@@ -1,9 +1,21 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import Link from "next/link";
 import { VoiceNoteButton } from "./VoiceNoteButton";
-import { FirmaCanvas } from "./FirmaCanvas";
+import { FirmaSection } from "./FirmaSection";
+import {
+  DatosEmpleado,
+  ErrorMsg,
+  Field,
+  FormHeader,
+  Icon,
+  MODULOS,
+  SectionTitle,
+  SubmitButton,
+  SuccessCard,
+  formatFecha,
+  inputCls,
+} from "./ui";
 
 interface Props {
   apiBasePath?: string;
@@ -12,17 +24,8 @@ interface Props {
 
 type Me = { nombre: string; cedula: string; idCore: string; cargo: string };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#6bb543] focus:ring-1 focus:ring-[#6bb543] transition-all";
-const readonlyCls = "w-full border border-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-500 bg-gray-50 cursor-default";
+const COLOR = MODULOS.vacaciones.color;
+const CLS = inputCls("vacaciones");
 
 function calcDias(inicio: string, fin: string): number {
   if (!inicio || !fin) return 0;
@@ -44,9 +47,21 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => { fetch(`${apiBasePath}/api/me`).then((r) => r.json()).then(setMe); }, [apiBasePath]);
+  useEffect(() => {
+    fetch(`${apiBasePath}/api/me`).then((r) => r.json()).then(setMe);
+  }, [apiBasePath]);
 
   const dias = calcDias(fechaInicio, fechaFin);
+
+  function resetForm() {
+    setSuccess(false);
+    setFechaInicio("");
+    setFechaFin("");
+    setFechaReintegro("");
+    setMotivo("");
+    setFirmaBlob(null);
+    setFirmaConfirmada(false);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,133 +107,138 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
     finally { setLoading(false); }
   }
 
-  if (success) return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 flex flex-col items-center text-center gap-4">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "#dcfce7" }}>
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-        </div>
-        <h2 className="text-xl font-bold text-gray-800">Solicitud enviada</h2>
-        <p className="text-gray-500 text-sm">Tu solicitud de vacaciones fue registrada. RRHH la revisará y te notificará.</p>
-        <div className="flex gap-3 mt-2">
-          <button
-            onClick={() => {
-              setSuccess(false);
-              setFechaInicio("");
-              setFechaFin("");
-              setFechaReintegro("");
-              setMotivo("");
+  if (success)
+    return (
+      <SuccessCard
+        color={COLOR}
+        titulo="Solicitud enviada"
+        mensaje="Tu solicitud de vacaciones fue registrada. RRHH la revisará y te notificará."
+        onReset={resetForm}
+        resetLabel="Nueva solicitud"
+        basePath={basePath}
+      />
+    );
+
+  return (
+    <div className="mx-auto max-w-2xl p-4 sm:p-8">
+      <FormHeader
+        modulo="vacaciones"
+        titulo="Solicitud de Vacaciones"
+        subtitulo="Los campos con * son obligatorios"
+        backHref={basePath}
+      />
+
+      <form
+        onSubmit={handleSubmit}
+        className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+      >
+        <div className="h-1" style={{ background: COLOR }} />
+
+        <div className="flex flex-col gap-6 p-5 sm:p-6">
+          {/* ── 1. Datos del solicitante ─────────────────────────────────── */}
+          <div className="flex flex-col gap-3">
+            <SectionTitle color={COLOR} paso={1}>
+              Tus datos
+            </SectionTitle>
+            <DatosEmpleado me={me} color={COLOR} />
+          </div>
+
+          {/* ── 2. Período ───────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4 border-t border-gray-100 pt-5">
+            <SectionTitle color={COLOR} paso={2}>
+              Período de vacaciones
+            </SectionTitle>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Fecha de inicio *">
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                  required
+                  className={CLS}
+                />
+              </Field>
+              <Field label="Fecha de fin *">
+                <input
+                  type="date"
+                  value={fechaFin}
+                  min={fechaInicio}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                  required
+                  className={CLS}
+                />
+              </Field>
+            </div>
+
+            {dias > 0 && (
+              <div
+                className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium"
+                style={{ background: "#f0fdf4", color: "#15803d" }}
+              >
+                <Icon path={MODULOS.vacaciones.icon} className="h-4 w-4" strokeWidth={1.8} />
+                {dias} día{dias !== 1 ? "s" : ""} calendario
+                <span className="font-normal opacity-70">
+                  · {formatFecha(fechaInicio)} → {formatFecha(fechaFin)}
+                </span>
+              </div>
+            )}
+
+            <Field label="Fecha de reintegro" hint="opcional">
+              <input
+                type="date"
+                value={fechaReintegro}
+                min={fechaFin}
+                onChange={(e) => setFechaReintegro(e.target.value)}
+                className={CLS}
+              />
+            </Field>
+
+            <Field label="Motivo o comentario" hint="opcional">
+              <div className="flex flex-col gap-2.5">
+                <VoiceNoteButton
+                  onTranscript={(transcript) => {
+                    setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
+                  }}
+                  disabled={loading}
+                  color={COLOR}
+                />
+                <textarea
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  rows={3}
+                  placeholder="Agrega contexto si lo consideras necesario."
+                  className={CLS + " resize-none"}
+                />
+              </div>
+            </Field>
+          </div>
+
+          {/* ── 3. Firma ─────────────────────────────────────────────────── */}
+          <FirmaSection
+            color={COLOR}
+            paso={3}
+            firmaConfirmada={firmaConfirmada}
+            onFirmar={(blob) => {
+              setFirmaBlob(blob);
+              setFirmaConfirmada(true);
+            }}
+            onLimpiar={() => {
               setFirmaBlob(null);
               setFirmaConfirmada(false);
             }}
-            className="px-5 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+          />
+
+          <ErrorMsg>{error}</ErrorMsg>
+
+          <SubmitButton
+            color={COLOR}
+            loading={loading}
+            disabled={loading || !me || !firmaConfirmada}
           >
-            Nueva solicitud
-          </button>
-          <Link href={basePath} className="px-6 py-2.5 rounded-xl text-sm text-white font-medium" style={{ background: "#6bb543" }}>Ver mis solicitudes</Link>
+            {loading ? "Enviando..." : "Enviar solicitud"}
+          </SubmitButton>
         </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href={basePath} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Solicitud de Vacaciones</h1>
-          <p className="text-sm text-gray-500">Los campos con * son obligatorios</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-5">
-        <div className="pb-4 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tus datos</p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Nombre completo"><div className={readonlyCls}>{me?.nombre ?? "Cargando..."}</div></Field>
-            <Field label="Cédula"><div className={readonlyCls}>{me?.cedula ?? "—"}</div></Field>
-            <Field label="Cargo"><div className={readonlyCls}>{me?.cargo || "—"}</div></Field>
-            <Field label="ID empleado"><div className={readonlyCls}>{me?.idCore ?? "—"}</div></Field>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Período de vacaciones</p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Fecha de inicio *"><input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} required className={inputCls} /></Field>
-            <Field label="Fecha de fin *"><input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)} required className={inputCls} /></Field>
-          </div>
-
-          {dias > 0 && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: "#f0fdf4", color: "#15803d" }}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25" /></svg>
-              {dias} día{dias !== 1 ? "s" : ""} calendario
-            </div>
-          )}
-
-          <Field label="Fecha de reintegro">
-            <input type="date" value={fechaReintegro} min={fechaFin} onChange={(e) => setFechaReintegro(e.target.value)} className={inputCls} />
-          </Field>
-
-          <Field label="Motivo o comentario">
-            <div className="flex flex-col gap-3">
-              <VoiceNoteButton
-                onTranscript={(transcript) => {
-                  setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
-                }}
-                disabled={loading}
-              />
-              <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Opcional — agrega contexto si lo consideras necesario." className={inputCls + " resize-none"} />
-            </div>
-          </Field>
-
-          {/* Firma del trabajador */}
-          <div className="pt-4 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Firma del trabajador *
-            </p>
-            {!firmaConfirmada ? (
-              <FirmaCanvas
-                onFirmaCapturada={(blob) => {
-                  setFirmaBlob(blob);
-                  setFirmaConfirmada(true);
-                }}
-                onLimpiar={() => {
-                  setFirmaBlob(null);
-                  setFirmaConfirmada(false);
-                }}
-              />
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="border border-green-200 bg-green-50 rounded-xl p-4 flex items-center gap-3">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-green-800 font-medium">Firma capturada correctamente</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFirmaBlob(null);
-                    setFirmaConfirmada(false);
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-800 underline"
-                >
-                  Volver a firmar
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
-
-        <button type="submit" disabled={loading || !me || !firmaConfirmada} className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "#6bb543" }}>
-          {loading ? "Enviando..." : "Enviar solicitud"}
-        </button>
       </form>
     </div>
   );

@@ -55,3 +55,7 @@ scripts/crear-tabla-permisos-autorizacion.js
 scripts/crear-tablas-normalizacion.js
 scripts/poblar-permisos-autorizacion.js
 scripts/poblar-tablas-normalizacion.js
+scripts/verificar-usuario-actual.js
+scripts/agregar-permiso-ingeniero-desarrollo.js
+scripts/agregar-campos-firma-autorizador.js
+/docs

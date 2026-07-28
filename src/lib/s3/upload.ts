@@ -12,7 +12,7 @@ export interface UploadFirmaParams {
   base64: string;
   cedula: string;
   idCore: string;
-  tipo: "permiso" | "vacaciones" | "contrato";
+  tipo: "permiso" | "vacaciones" | "contrato" | "autorizacion-permiso" | "autorizacion-vacaciones" | "autorizacion-novedades";
   metadata?: Record<string, string>;
 }
 

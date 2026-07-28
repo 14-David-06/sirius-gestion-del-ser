@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { verifyJWT } from "@/lib/auth";
 import { SolicitudesOverview } from "@sirius/solicitudes";
 import { DiasPactoWidget } from "@/components/DiasPactoWidget";
+import DashboardAutorizaciones from "@/components/DashboardAutorizaciones";
 
 export default async function SolicitudesPage() {
   const token = (await cookies()).get("sirius-auth")?.value;
@@ -17,7 +18,14 @@ export default async function SolicitudesPage() {
           <DiasPactoWidget />
         </Suspense>
       </div>
+
+      {/* Mis solicitudes */}
       <SolicitudesOverview idCore={payload.idCore} />
+
+      {/* Dashboard de autorizaciones (si tiene permisos) - ABAJO */}
+      <div className="px-8 pb-8 max-w-7xl mx-auto">
+        <DashboardAutorizaciones />
+      </div>
     </div>
   );
 }

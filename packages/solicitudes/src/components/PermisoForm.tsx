@@ -1,11 +1,23 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import Link from "next/link";
 import { TIPOS_PERMISO, TIPO_DIA_PACTO } from "../lib/constants";
 import { CalendarioPermiso } from "./CalendarioPermiso";
-import { FirmaCanvas } from "./FirmaCanvas";
+import { FirmaSection } from "./FirmaSection";
 import { VoiceNoteButton } from "./VoiceNoteButton";
+import {
+  DatosEmpleado,
+  ErrorMsg,
+  Field,
+  FormHeader,
+  Icon,
+  MODULOS,
+  SectionTitle,
+  SubmitButton,
+  SuccessCard,
+  formatFecha,
+  inputCls,
+} from "./ui";
 
 interface Props {
   apiBasePath?: string;
@@ -15,17 +27,8 @@ interface Props {
 type Me = { nombre: string; cedula: string; idCore: string; cargo: string };
 type DiasPactoData = { saldo_disponible: number };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#1a51a8] focus:ring-1 focus:ring-[#1a51a8] transition-all";
-const readonlyCls = "w-full border border-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-500 bg-gray-50 cursor-default";
+const COLOR = MODULOS.permiso.color;
+const CLS = inputCls("permiso");
 
 export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitudes" }: Props) {
   const [me, setMe] = useState<Me | null>(null);
@@ -46,10 +49,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
   useEffect(() => {
     fetch(`${apiBasePath}/api/me`)
       .then((r) => r.json())
-      .then((data) => {
-        console.log("[PermisoForm] Me data:", data);
-        setMe(data);
-      })
+      .then(setMe)
       .catch((err) => console.error("[PermisoForm] Error fetching /api/me:", err));
   }, [apiBasePath]);
 
@@ -61,6 +61,17 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
         .catch((err) => console.error("[PermisoForm] Error fetching dias-pacto:", err));
     }
   }, [esDiaPacto, apiBasePath]);
+
+  function resetForm() {
+    setSuccess(false);
+    setTipo("");
+    setModalidad("dias");
+    setFechasSeleccionadas([]);
+    setHoras("");
+    setMotivo("");
+    setFirmaBlob(null);
+    setFirmaConfirmada(false);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -147,291 +158,263 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
 
   if (success)
     return (
-      <div className="p-8 max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 flex flex-col items-center text-center gap-4">
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ background: "#dcfce7" }}
-          >
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-800">Solicitud enviada</h2>
-          <p className="text-gray-500 text-sm">
-            Tu solicitud de permiso fue registrada exitosamente. RRHH la revisará pronto.
-          </p>
-          <div className="flex gap-3 mt-2">
-            <button
-              onClick={() => {
-                setSuccess(false);
-                setTipo("");
-                setModalidad("dias");
-                setFechasSeleccionadas([]);
-                setHoras("");
-                setMotivo("");
-              }}
-              className="px-5 py-2 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
-            >
-              Nueva solicitud
-            </button>
-            <Link
-              href={basePath}
-              className="px-5 py-2 rounded-xl text-sm text-white font-medium transition-colors"
-              style={{ background: "#1a51a8" }}
-            >
-              Ver mis solicitudes
-            </Link>
-          </div>
-        </div>
-      </div>
+      <SuccessCard
+        color={COLOR}
+        titulo="Solicitud enviada"
+        mensaje="Tu solicitud de permiso fue registrada exitosamente. RRHH la revisará pronto."
+        onReset={resetForm}
+        resetLabel="Nueva solicitud"
+        basePath={basePath}
+      />
     );
 
   const sinSaldo = esDiaPacto && diasPacto !== null && diasPacto.saldo_disponible === 0;
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link
-          href={basePath}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-        >
-          <svg
-            className="w-4 h-4 text-gray-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Solicitud de Permiso</h1>
-          <p className="text-sm text-gray-500">Los campos con * son obligatorios</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl p-4 sm:p-8">
+      <FormHeader
+        modulo="permiso"
+        titulo="Solicitud de Permiso"
+        subtitulo="Los campos con * son obligatorios"
+        backHref={basePath}
+      />
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-5"
+        className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
       >
-        <div className="pb-4 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tus datos</p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Nombre completo">
-              <div className={readonlyCls}>{me?.nombre ?? "Cargando..."}</div>
-            </Field>
-            <Field label="Cédula">
-              <div className={readonlyCls}>{me?.cedula ?? "—"}</div>
-            </Field>
-            <Field label="Cargo">
-              <div className={readonlyCls}>{me?.cargo || "Sin cargo asignado"}</div>
-            </Field>
-            <Field label="ID empleado">
-              <div className={readonlyCls}>{me?.idCore ?? "—"}</div>
-            </Field>
+        <div className="h-1" style={{ background: COLOR }} />
+
+        <div className="flex flex-col gap-6 p-5 sm:p-6">
+          {/* ── 1. Datos del solicitante ─────────────────────────────────── */}
+          <div className="flex flex-col gap-3">
+            <SectionTitle color={COLOR} paso={1}>
+              Tus datos
+            </SectionTitle>
+            <DatosEmpleado me={me} color={COLOR} />
           </div>
-        </div>
 
-        <div className="flex flex-col gap-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Detalle del permiso</p>
+          {/* ── 2. Detalle del permiso ───────────────────────────────────── */}
+          <div className="flex flex-col gap-4 border-t border-gray-100 pt-5">
+            <SectionTitle color={COLOR} paso={2}>
+              Detalle del permiso
+            </SectionTitle>
 
-          <Field label="Tipo de permiso *">
-            <select
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-              required
-              className={inputCls}
-              style={{ background: "white" }}
-            >
-              <option value="">Selecciona un tipo...</option>
-              {TIPOS_PERMISO.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          {esDiaPacto && (
-            <div
-              className="rounded-xl p-4 border"
-              style={{
-                background: sinSaldo ? "#fee2e2" : "#f0f9ff",
-                borderColor: sinSaldo ? "#fecaca" : "#bae6fd",
-              }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}>
-                📋 Políticas de Días de Pacto
-              </p>
-              <ul className="text-xs space-y-1" style={{ color: sinSaldo ? "#991b1b" : "#075985" }}>
-                <li>• Consulta previamente con tu jefe de área</li>
-                <li>• No puedes tomar días de pacto consecutivos</li>
-                <li>• Evita fechas importantes para la empresa</li>
-              </ul>
-              {diasPacto && (
-                <p className="text-xs font-semibold mt-3" style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}>
-                  Saldo disponible: {diasPacto.saldo_disponible} de 2 días
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Día de Pacto: siempre usa calendario */}
-          {esDiaPacto && diasPacto && (
-            <Field label={`Selecciona tus días de pacto (máx. ${diasPacto.saldo_disponible}) *`}>
-              <CalendarioPermiso
-                fechasSeleccionadas={fechasSeleccionadas}
-                onChange={(fechas) => {
-                  if (fechas.length <= diasPacto.saldo_disponible) {
-                    setFechasSeleccionadas(fechas);
-                  }
-                }}
-                maxDias={diasPacto.saldo_disponible}
-              />
-            </Field>
-          )}
-
-          {/* Otros permisos: selector de modalidad */}
-          {tipo && !esDiaPacto && (
-            <Field label="Modalidad del permiso *">
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="modalidad"
-                    value="dias"
-                    checked={modalidad === "dias"}
-                    onChange={() => setModalidad("dias")}
-                    className="w-4 h-4"
-                  />
-                  Por días
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="modalidad"
-                    value="horas"
-                    checked={modalidad === "horas"}
-                    onChange={() => setModalidad("horas")}
-                    className="w-4 h-4"
-                  />
-                  Por horas (máx. 4)
-                </label>
-              </div>
-            </Field>
-          )}
-
-          {/* Calendario para permisos por días (NO día de pacto) */}
-          {tipo && !esDiaPacto && modalidad === "dias" && (
-            <Field label="Selecciona los días de permiso *">
-              <CalendarioPermiso
-                fechasSeleccionadas={fechasSeleccionadas}
-                onChange={setFechasSeleccionadas}
-              />
-            </Field>
-          )}
-
-          {/* Permiso por horas */}
-          {tipo && !esDiaPacto && modalidad === "horas" && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Fecha del permiso *">
-                <input
-                  type="date"
-                  value={fechasSeleccionadas[0] || ""}
-                  onChange={(e) => setFechasSeleccionadas([e.target.value])}
-                  required
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Horas de permiso *">
-                <input
-                  type="number"
-                  min="0.5"
-                  max="4"
-                  step="0.5"
-                  value={horas}
-                  onChange={(e) => setHoras(e.target.value)}
-                  placeholder="Ej: 2"
-                  required={modalidad === "horas"}
-                  className={inputCls}
-                />
-              </Field>
-            </div>
-          )}
-
-          <Field label="Motivo *">
-            <div className="flex flex-col gap-3">
-              <VoiceNoteButton
-                onTranscript={(transcript) => {
-                  // Agregar transcripción al final del texto actual
-                  setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
-                }}
-                disabled={loading}
-              />
-              <textarea
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
+            <Field label="Tipo de permiso *">
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
                 required
-                rows={3}
-                placeholder="Describe brevemente el motivo del permiso..."
-                className={inputCls + " resize-none"}
-              />
-            </div>
-          </Field>
+                className={CLS}
+              >
+                <option value="">Selecciona un tipo...</option>
+                {TIPOS_PERMISO.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          {/* Firma del trabajador */}
-          <div className="pt-4 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Firma del trabajador *
-            </p>
-            {!firmaConfirmada ? (
-              <FirmaCanvas
-                onFirmaCapturada={(blob) => {
-                  setFirmaBlob(blob);
-                  setFirmaConfirmada(true);
+            {esDiaPacto && (
+              <div
+                className="rounded-xl border p-4"
+                style={{
+                  background: sinSaldo ? "#fef2f2" : "#f0f9ff",
+                  borderColor: sinSaldo ? "#fecaca" : "#bae6fd",
                 }}
-                onLimpiar={() => {
-                  setFirmaBlob(null);
-                  setFirmaConfirmada(false);
-                }}
-              />
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="border border-green-200 bg-green-50 rounded-xl p-4 flex items-center gap-3">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-green-800 font-medium">Firma capturada correctamente</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFirmaBlob(null);
-                    setFirmaConfirmada(false);
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+              >
+                <p
+                  className="mb-2 flex items-center gap-1.5 text-xs font-semibold"
+                  style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}
                 >
-                  Volver a firmar
-                </button>
+                  <Icon
+                    path={
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                      />
+                    }
+                    className="h-4 w-4"
+                    strokeWidth={1.8}
+                  />
+                  Políticas de Días de Pacto
+                </p>
+                <ul className="space-y-1 text-xs" style={{ color: sinSaldo ? "#991b1b" : "#075985" }}>
+                  <li>• Consulta previamente con tu jefe de área</li>
+                  <li>• No puedes tomar días de pacto consecutivos</li>
+                  <li>• Evita fechas importantes para la empresa</li>
+                </ul>
+                {diasPacto && (
+                  <div
+                    className="mt-3 flex items-center justify-between rounded-lg bg-white/70 px-3 py-2"
+                    style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}
+                  >
+                    <span className="text-xs font-medium">Saldo disponible</span>
+                    <span className="text-sm font-bold">{diasPacto.saldo_disponible} / 2 días</span>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Día de Pacto: siempre usa calendario */}
+            {esDiaPacto && diasPacto && (
+              <Field
+                label="Selecciona tus días de pacto *"
+                hint={`máx. ${diasPacto.saldo_disponible}`}
+              >
+                <CalendarioPermiso
+                  fechasSeleccionadas={fechasSeleccionadas}
+                  onChange={(fechas) => {
+                    if (fechas.length <= diasPacto.saldo_disponible) {
+                      setFechasSeleccionadas(fechas);
+                    }
+                  }}
+                  maxDias={diasPacto.saldo_disponible}
+                />
+              </Field>
+            )}
+
+            {/* Otros permisos: selector de modalidad */}
+            {tipo && !esDiaPacto && (
+              <Field label="Modalidad del permiso *">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {(
+                    [
+                      { v: "dias", label: "Por días", desc: "Uno o varios días" },
+                      { v: "horas", label: "Por horas", desc: "Máximo 4 horas" },
+                    ] as const
+                  ).map((o) => {
+                    const activo = modalidad === o.v;
+                    return (
+                      <button
+                        key={o.v}
+                        type="button"
+                        onClick={() => setModalidad(o.v)}
+                        aria-pressed={activo}
+                        className="rounded-xl border px-4 py-3 text-left transition-all"
+                        style={{
+                          borderColor: activo ? COLOR : "#e5e7eb",
+                          background: activo ? `${COLOR}0d` : "white",
+                          boxShadow: activo ? `0 0 0 1px ${COLOR}` : undefined,
+                        }}
+                      >
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: activo ? COLOR : "#374151" }}
+                        >
+                          {o.label}
+                        </p>
+                        <p className="mt-0.5 text-xs text-gray-500">{o.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            )}
+
+            {/* Calendario para permisos por días (NO día de pacto) */}
+            {tipo && !esDiaPacto && modalidad === "dias" && (
+              <Field label="Selecciona los días de permiso *">
+                <CalendarioPermiso
+                  fechasSeleccionadas={fechasSeleccionadas}
+                  onChange={setFechasSeleccionadas}
+                />
+              </Field>
+            )}
+
+            {/* Permiso por horas */}
+            {tipo && !esDiaPacto && modalidad === "horas" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Fecha del permiso *">
+                  <input
+                    type="date"
+                    value={fechasSeleccionadas[0] || ""}
+                    onChange={(e) => setFechasSeleccionadas([e.target.value])}
+                    required
+                    className={CLS}
+                  />
+                </Field>
+                <Field label="Horas de permiso *" hint="máx. 4">
+                  <input
+                    type="number"
+                    min="0.5"
+                    max="4"
+                    step="0.5"
+                    value={horas}
+                    onChange={(e) => setHoras(e.target.value)}
+                    placeholder="Ej: 2"
+                    required={modalidad === "horas"}
+                    className={CLS}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {/* Resumen de días seleccionados */}
+            {modalidad === "dias" && fechasSeleccionadas.length > 0 && (
+              <div
+                className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium"
+                style={{ background: `${COLOR}0d`, color: COLOR }}
+              >
+                <Icon path={MODULOS.vacaciones.icon} className="h-4 w-4" strokeWidth={1.8} />
+                {fechasSeleccionadas.length} día{fechasSeleccionadas.length !== 1 ? "s" : ""}
+                <span className="font-normal opacity-70">
+                  · {formatFecha(fechasSeleccionadas[0])}
+                  {fechasSeleccionadas.length > 1 &&
+                    ` → ${formatFecha(fechasSeleccionadas[fechasSeleccionadas.length - 1])}`}
+                </span>
+              </div>
+            )}
+
+            <Field label="Motivo *">
+              <div className="flex flex-col gap-2.5">
+                <VoiceNoteButton
+                  onTranscript={(transcript) => {
+                    // Agregar transcripción al final del texto actual
+                    setMotivo((prev) => (prev ? `${prev} ${transcript}` : transcript));
+                  }}
+                  disabled={loading}
+                  color={COLOR}
+                />
+                <textarea
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  required
+                  rows={3}
+                  placeholder="Describe brevemente el motivo del permiso..."
+                  className={CLS + " resize-none"}
+                />
+              </div>
+            </Field>
           </div>
+
+          {/* ── 3. Firma ─────────────────────────────────────────────────── */}
+          <FirmaSection
+            color={COLOR}
+            paso={3}
+            firmaConfirmada={firmaConfirmada}
+            onFirmar={(blob) => {
+              setFirmaBlob(blob);
+              setFirmaConfirmada(true);
+            }}
+            onLimpiar={() => {
+              setFirmaBlob(null);
+              setFirmaConfirmada(false);
+            }}
+          />
+
+          <ErrorMsg>{error}</ErrorMsg>
+
+          <SubmitButton
+            color={COLOR}
+            loading={loading}
+            disabled={loading || !me || sinSaldo || !firmaConfirmada}
+          >
+            {loading ? "Enviando..." : sinSaldo ? "Sin días de pacto disponibles" : "Enviar solicitud"}
+          </SubmitButton>
         </div>
-
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading || !me || sinSaldo || !firmaConfirmada}
-          className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ background: "#1a51a8" }}
-        >
-          {loading ? "Enviando..." : sinSaldo ? "Sin días de pacto disponibles" : "Enviar solicitud"}
-        </button>
       </form>
     </div>
   );
