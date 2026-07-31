@@ -63,5 +63,7 @@ export const S3_CONFIG = {
     FIRMAS_PERMISOS: "firmas/permisos",
     FIRMAS_VACACIONES: "firmas/vacaciones",
     FIRMAS_CONTRATOS: "firmas/contratos",
+    // PDFs de permisos de día de pacto (documentos ya autorizados)
+    PDF_PERMISOS_PACTO: "permisos/dias-pacto",
   },
 } as const;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import { TIPOS_PERMISO, TIPO_DIA_PACTO } from "../lib/constants";
+import { TIPOS_PERMISO, TIPO_DIA_PACTO, TIPO_PERMISO_OTRO } from "../lib/constants";
 import { CalendarioPermiso } from "./CalendarioPermiso";
 import { FirmaSection } from "./FirmaSection";
 import { VoiceNoteButton } from "./VoiceNoteButton";
@@ -10,7 +10,6 @@ import {
   ErrorMsg,
   Field,
   FormHeader,
-  Icon,
   MODULOS,
   SectionTitle,
   SubmitButton,
@@ -33,6 +32,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
   const [me, setMe] = useState<Me | null>(null);
   const [diasPacto, setDiasPacto] = useState<DiasPactoData | null>(null);
   const [tipo, setTipo] = useState("");
+  const [tipoOtro, setTipoOtro] = useState("");
   const [modalidad, setModalidad] = useState<"dias" | "horas">("dias");
   const [fechasSeleccionadas, setFechasSeleccionadas] = useState<string[]>([]);
   const [horas, setHoras] = useState("");
@@ -44,6 +44,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
   const [error, setError] = useState("");
 
   const esDiaPacto = tipo === TIPO_DIA_PACTO;
+  const esOtro = tipo === TIPO_PERMISO_OTRO;
 
   useEffect(() => {
     fetch(`${apiBasePath}/api/me`)
@@ -64,6 +65,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
   function resetForm() {
     setSuccess(false);
     setTipo("");
+    setTipoOtro("");
     setModalidad("dias");
     setFechasSeleccionadas([]);
     setHoras("");
@@ -76,6 +78,11 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
     e.preventDefault();
     if (!tipo || !motivo) {
       setError("Completa los campos obligatorios.");
+      return;
+    }
+
+    if (esOtro && !tipoOtro.trim()) {
+      setError("Especifica qué tipo de permiso necesitas.");
       return;
     }
 
@@ -115,7 +122,9 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
       });
 
       const body: Record<string, unknown> = {
-        tipo,
+        // "Otro" viaja como "Otro: <especificación>" — Tipo_Permiso es texto libre
+        // en Airtable, así que el detalle queda visible en la tabla y en el PDF.
+        tipo: esOtro ? `${TIPO_PERMISO_OTRO}: ${tipoOtro.trim()}` : tipo,
         motivo,
         cargo: me?.cargo || "",
         firmaBase64,
@@ -125,6 +134,11 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
         body.fechaInicio = fechasSeleccionadas[0];
         if (fechasSeleccionadas.length > 1) {
           body.fechaFin = fechasSeleccionadas[fechasSeleccionadas.length - 1];
+        }
+        // Días de pacto: se envían todas las fechas elegidas para descontar
+        // el saldo real (antes solo se descontaba 1 día sin importar cuántos).
+        if (esDiaPacto) {
+          body.fechasPacto = fechasSeleccionadas;
         }
       } else {
         body.fechaInicio = fechasSeleccionadas[0];
@@ -159,8 +173,12 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
     return (
       <SuccessCard
         color={COLOR}
-        titulo="Solicitud enviada"
-        mensaje="Tu solicitud de permiso fue registrada exitosamente. RRHH la revisará pronto."
+        titulo={esDiaPacto ? "Día de pacto autorizado" : "Solicitud enviada"}
+        mensaje={
+          esDiaPacto
+            ? "Tu día de pacto quedó autorizado automáticamente y su comprobante en PDF fue archivado. No requiere aprobación de tu jefe."
+            : "Tu solicitud de permiso fue registrada exitosamente. RRHH la revisará pronto."
+        }
         onReset={resetForm}
         resetLabel="Nueva solicitud"
         basePath={basePath}
@@ -215,62 +233,36 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
               </select>
             </Field>
 
-            {esDiaPacto && (
-              <div
-                className="rounded-xl border p-4"
-                style={{
-                  background: sinSaldo ? "#fef2f2" : "#f0f9ff",
-                  borderColor: sinSaldo ? "#fecaca" : "#bae6fd",
-                }}
-              >
-                <p
-                  className="mb-2 flex items-center gap-1.5 text-xs font-semibold"
-                  style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}
-                >
-                  <Icon
-                    path={
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                      />
-                    }
-                    className="h-4 w-4"
-                    strokeWidth={1.8}
-                  />
-                  Políticas de Días de Pacto
-                </p>
-                <ul className="space-y-1 text-xs" style={{ color: sinSaldo ? "#991b1b" : "#075985" }}>
-                  <li>• Consulta previamente con tu jefe de área</li>
-                  <li>• No puedes tomar días de pacto consecutivos</li>
-                  <li>• Evita fechas importantes para la empresa</li>
-                </ul>
-                {diasPacto && (
-                  <div
-                    className="mt-3 flex items-center justify-between rounded-lg bg-white/70 px-3 py-2"
-                    style={{ color: sinSaldo ? "#b91c1c" : "#0369a1" }}
-                  >
-                    <span className="text-xs font-medium">Saldo disponible</span>
-                    <span className="text-sm font-bold">{diasPacto.saldo_disponible} / 2 días</span>
-                  </div>
-                )}
-              </div>
+            {/* "Otro": el tipo se especifica en texto libre */}
+            {esOtro && (
+              <Field label="Especifica el tipo de permiso *">
+                <input
+                  type="text"
+                  value={tipoOtro}
+                  onChange={(e) => setTipoOtro(e.target.value)}
+                  required
+                  maxLength={80}
+                  placeholder="Ej: Diligencia bancaria, mudanza, grado de un familiar..."
+                  className={CLS}
+                />
+              </Field>
             )}
 
-            {/* Día de Pacto: siempre usa calendario */}
+            {/* Día de Pacto: calendario de un solo día — una solicitud por día */}
             {esDiaPacto && diasPacto && (
               <Field
-                label="Selecciona tus días de pacto *"
-                hint={`máx. ${diasPacto.saldo_disponible}`}
+                label="Selecciona el día de pacto *"
+                hint="un día por solicitud"
               >
                 <CalendarioPermiso
                   fechasSeleccionadas={fechasSeleccionadas}
                   onChange={(fechas) => {
-                    if (fechas.length <= diasPacto.saldo_disponible) {
+                    if (fechas.length <= 1) {
                       setFechasSeleccionadas(fechas);
                     }
                   }}
-                  maxDias={diasPacto.saldo_disponible}
+                  maxDias={1}
+                  excluirFestivos
                 />
               </Field>
             )}
@@ -319,6 +311,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
                 <CalendarioPermiso
                   fechasSeleccionadas={fechasSeleccionadas}
                   onChange={setFechasSeleccionadas}
+                  excluirFestivos
                 />
               </Field>
             )}

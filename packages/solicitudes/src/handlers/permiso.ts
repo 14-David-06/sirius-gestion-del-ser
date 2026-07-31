@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeAirtableValue } from "../lib/security";
-import { TABLES, FIELDS, FK_ID_CORE, ESTADO_PENDIENTE, PERIODO_ACTUAL } from "../lib/schema";
+import {
+  TABLES,
+  FIELDS,
+  FK_ID_CORE,
+  ESTADO_PENDIENTE,
+  ESTADO_CONCEDIDO,
+  PERIODO_ACTUAL,
+} from "../lib/schema";
 import { TIPO_DIA_PACTO } from "../lib/constants";
 import type { ResolvePayload } from "../types";
-import { uploadFirmaTrabajador } from "@/lib/s3";
+import { uploadFirmaTrabajador, uploadPdfPermisoPacto } from "@/lib/s3";
+import { generarPdfPermisoPacto } from "@/lib/pdf";
+
+/** Texto que queda como autorizador en los permisos de día de pacto. */
+const AUTORIZACION_AUTOMATICA = "Autorización automática — Día de Pacto";
 
 const base = () => process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
 const key  = () => process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
@@ -44,8 +55,23 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
     const today = new Date().toISOString().split("T")[0];
     const esDiaPacto = body.tipo === TIPO_DIA_PACTO;
 
+    // Regla de negocio: un día de pacto por solicitud.
+    const fechasPacto: string[] = Array.isArray(body.fechasPacto)
+      ? (body.fechasPacto as string[]).filter((f) => typeof f === "string" && f)
+      : [];
+
+    if (esDiaPacto && fechasPacto.length > 1) {
+      return NextResponse.json(
+        { error: "Solo puedes solicitar un día de pacto por solicitud" },
+        { status: 400 }
+      );
+    }
+
+    const fechaPacto = fechasPacto[0] ?? (body.fechaInicio as string);
+
     let pactoRecordId: string | null = null;
     let pactoRecord: { id: string; fields: Record<string, unknown> } | null = null;
+    let saldoPactoDisponible = 0;
 
     // Si es día de pacto, validar saldo y obtener recordId
     if (esDiaPacto) {
@@ -90,6 +116,7 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
 
       pactoRecord = record;
       pactoRecordId = record.id;
+      saldoPactoDisponible = saldoDisponible;
     }
 
     // Crear permiso en Solicitud_Permiso
@@ -99,16 +126,25 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
       [FIELDS.PERMISO.CARGO]:           body.cargo ?? "",
       [FK_ID_CORE]:                     payload.idCore,
       [FIELDS.PERMISO.FECHA_SOLICITUD]: today,
-      [FIELDS.PERMISO.FECHA_INICIO]:    body.fechaInicio,
+      [FIELDS.PERMISO.FECHA_INICIO]:    esDiaPacto ? fechaPacto : body.fechaInicio,
       [FIELDS.PERMISO.TIPO]:            body.tipo,
       [FIELDS.PERMISO.MOTIVO]:          body.motivo,
       [FIELDS.PERMISO.HORAS]:           body.horas ? String(body.horas) : "",
       [FIELDS.PERMISO.REMUNERADO]:      body.remunerado ?? false,
       [FIELDS.PERMISO.COMPENSADO]:      body.compensado ?? false,
-      [FIELDS.PERMISO.ESTADO]:          ESTADO_PENDIENTE,
+      // Los días de pacto son un beneficio ya concedido: quedan autorizados al radicarse.
+      [FIELDS.PERMISO.ESTADO]:          esDiaPacto ? ESTADO_CONCEDIDO : ESTADO_PENDIENTE,
     };
 
-    if (body.fechaFin)          fields[FIELDS.PERMISO.FECHA_FIN]  = body.fechaFin;
+    if (esDiaPacto) {
+      fields[FIELDS.PERMISO.FECHA_AUTORIZACION] = today;
+      fields[FIELDS.PERMISO.AUTORIZADO_POR_NOM] = AUTORIZACION_AUTOMATICA;
+      fields[FIELDS.PERMISO.COMENTARIO_AUTORIZACION] =
+        "Día de pacto: beneficio ya concedido, no requiere autorización de jefatura.";
+    }
+
+    // Un día de pacto por solicitud: nunca lleva rango inicio–fin.
+    if (body.fechaFin && !esDiaPacto) fields[FIELDS.PERMISO.FECHA_FIN] = body.fechaFin;
     if (body.fechaCompensatorio) fields[FIELDS.PERMISO.FECHA_COMP] = body.fechaCompensatorio;
     if (esDiaPacto && pactoRecordId) {
       fields[FIELDS.PERMISO.DIAS_PACTO_LINK] = [pactoRecordId];  // Relación: array de record IDs
@@ -165,9 +201,9 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
 
       const nuevoSaldoDisponible = saldoDisponible - 1;
       const nuevoSaldoUsado = saldoUsado + 1;
-      const nuevoEstado = nuevoSaldoDisponible === 0 ? "Agotado" : "Activo";
+      const nuevoEstado = nuevoSaldoDisponible <= 0 ? "Agotado" : "Activo";
 
-      const nuevaObservacion = `${body.fechaInicio}: Permiso ${permisoCreado.id} - ${body.motivo || "Día de pacto"}`;
+      const nuevaObservacion = `${fechaPacto}: Permiso ${permisoCreado.id} - ${body.motivo || "Día de pacto"}`;
       const observacionesActualizadas = observacionesActuales
         ? `${observacionesActuales}\n${nuevaObservacion}`
         : nuevaObservacion;
@@ -184,7 +220,7 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
           fields: {
             [CAMPOS_DIAS_PACTO.SALDO_DISPONIBLE]: nuevoSaldoDisponible,
             [CAMPOS_DIAS_PACTO.SALDO_USADO]: nuevoSaldoUsado,
-            [CAMPOS_DIAS_PACTO.FECHA_ULTIMO_USO]: body.fechaInicio,
+            [CAMPOS_DIAS_PACTO.FECHA_ULTIMO_USO]: fechaPacto,
             [CAMPOS_DIAS_PACTO.OBSERVACIONES]: observacionesActualizadas,
             [CAMPOS_DIAS_PACTO.ESTADO]: nuevoEstado,
           },
@@ -199,7 +235,73 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
       }
     }
 
-    return NextResponse.json({ ok: true, id: permisoCreado.id }, { status: 201 });
+    // Día de pacto: el permiso nace autorizado, así que se emite el PDF y se
+    // archiva en S3. Un fallo aquí no invalida el permiso ya registrado.
+    let pdfUrl: string | null = null;
+
+    if (esDiaPacto) {
+      try {
+        const pdf = await generarPdfPermisoPacto({
+          solicitudId: permisoCreado.id,
+          nombre: payload.nombre,
+          cedula: payload.cedula,
+          cargo: body.cargo ?? "",
+          idCore: payload.idCore,
+          fechaPermiso: fechaPacto,
+          fechaSolicitud: today,
+          motivo: body.motivo ?? "",
+          periodo: PERIODO_ACTUAL,
+          saldoRestante: Math.max(0, saldoPactoDisponible - 1),
+          firmaBase64: body.firmaBase64,
+        });
+
+        const subida = await uploadPdfPermisoPacto({
+          pdf,
+          cedula: payload.cedula,
+          idCore: payload.idCore,
+          fechaPermiso: fechaPacto,
+          metadata: {
+            solicitudId: permisoCreado.id,
+            periodo: PERIODO_ACTUAL,
+            nombre: payload.nombre,
+          },
+        });
+
+        pdfUrl = subida.url;
+
+        const resPdf = await fetch(
+          `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.PERMISO)}/${permisoCreado.id}`,
+          {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fields: {
+                [FIELDS.PERMISO.URL_PDF]: subida.url,
+                [FIELDS.PERMISO.NOMBRE_ARCHIVO]: subida.filename,
+                [FIELDS.PERMISO.HASH_DOCUMENTO]: subida.sha256,
+              },
+            }),
+          }
+        );
+
+        if (!resPdf.ok) {
+          console.error("[permiso POST - patch pdf]", await resPdf.text());
+          console.error(
+            `IMPORTANTE: PDF ${subida.s3Key} archivado pero no se pudo referenciar en el permiso ${permisoCreado.id}`
+          );
+        }
+      } catch (error) {
+        console.error("[permiso POST - pdf dia de pacto]", error);
+        console.error(
+          `IMPORTANTE: Permiso ${permisoCreado.id} autorizado pero sin PDF archivado en S3`
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { ok: true, id: permisoCreado.id, autorizado: esDiaPacto, pdfUrl },
+      { status: 201 }
+    );
   }
 
   return { GET, POST };

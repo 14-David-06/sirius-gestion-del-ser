@@ -37,6 +37,9 @@ export const FIELDS = {
     FECHA_AUTORIZACION:   "Fecha_Autorizacion",
     COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
     DIAS_COMPENSACION:    "Dias_Compensacion_Detalle",
+    URL_PDF:              "URL_PDF_Firmado",
+    NOMBRE_ARCHIVO:       "Nombre_Archivo",
+    HASH_DOCUMENTO:       "Hash_Documento",
   },
   VACACIONES: {
     NOMBRE:             "Nombre",
@@ -75,4 +78,6 @@ export const FIELDS = {
 } as const;
 
 export const ESTADO_PENDIENTE = "Pendiente";
+/** Estado de un permiso aprobado (opción del singleSelect Estado_Permiso). */
+export const ESTADO_CONCEDIDO = "Concedido";
 export const PERIODO_ACTUAL = "2026-S2";

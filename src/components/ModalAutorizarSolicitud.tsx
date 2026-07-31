@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { FirmaCanvas } from "@sirius/solicitudes";
+
+/** Valores tal como los devuelve la API de Airtable. */
+export type CampoAirtable = string | number | boolean | string[] | undefined | null;
 
 interface Solicitud {
   id: string;
-  fields: Record<string, any>;
+  fields: Record<string, CampoAirtable>;
 }
 
 interface Props {
@@ -28,8 +31,8 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
   const [error, setError] = useState<string | null>(null);
 
   // Estados específicos para permisos
-  const [remunerado, setRemunerado] = useState(solicitud.fields['Remunerado'] || false);
-  const [compensado, setCompensado] = useState(solicitud.fields['Compensado'] || false);
+  const [remunerado, setRemunerado] = useState(Boolean(solicitud.fields['Remunerado']));
+  const [compensado, setCompensado] = useState(Boolean(solicitud.fields['Compensado']));
   const [diasCompensacion, setDiasCompensacion] = useState<DiaCompensacion[]>([
     { fecha: "", horas: 0, descripcion: "" }
   ]);
@@ -47,7 +50,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
     setDiasCompensacion(diasCompensacion.filter((_, i) => i !== index));
   }
 
-  function actualizarDiaCompensacion(index: number, campo: keyof DiaCompensacion, valor: any) {
+  function actualizarDiaCompensacion(index: number, campo: keyof DiaCompensacion, valor: string | number) {
     const nuevos = [...diasCompensacion];
     nuevos[index] = { ...nuevos[index], [campo]: valor };
     setDiasCompensacion(nuevos);
@@ -81,7 +84,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
       const firmaBase64 = await blobToBase64(firmaBlob);
 
       // Preparar body
-      const body: any = {
+      const body: Record<string, unknown> = {
         tabla: tipo,
         recordId: solicitud.id,
         accion,
@@ -113,8 +116,8 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
       // Éxito
       onSuccess();
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error inesperado");
     } finally {
       setLoading(false);
     }
@@ -350,7 +353,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
 }
 
 // Componentes auxiliares
-function DetallesSolicitud({ tipo, fields }: { tipo: string; fields: Record<string, any> }) {
+function DetallesSolicitud({ tipo, fields }: { tipo: string; fields: Record<string, CampoAirtable> }) {
   if (tipo === "permiso") {
     return (
       <div className="border border-gray-200 rounded-xl p-6">
@@ -460,7 +463,7 @@ function CamposPermiso({
   diasCompensacion: DiaCompensacion[];
   agregarDia: () => void;
   eliminarDia: (i: number) => void;
-  actualizarDia: (i: number, c: keyof DiaCompensacion, v: any) => void;
+  actualizarDia: (i: number, c: keyof DiaCompensacion, v: string | number) => void;
 }) {
   return (
     <div className="space-y-4">

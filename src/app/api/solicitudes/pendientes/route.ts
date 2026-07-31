@@ -1,14 +1,67 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyJWT } from "@/lib/auth";
 import { obtenerPermisosEmpleado } from "@/lib/permisos";
+import { TABLES, FIELDS, FK_ID_CORE, ESTADO_PENDIENTE } from "@/lib/airtable-schema";
+import { TIPO_HORAS_EXTRA } from "@/lib/constants";
+import { escapeAirtableValue } from "@/lib/security";
 
 const BASE_ID_NOVEDADES = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
 const API_KEY_NOVEDADES = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
 const BASE_ID_CORE = process.env.AIRTABLE_BASE_ID_SIRIUS_NOMINA_CORE!;
 const API_KEY_CORE = process.env.AIRTABLE_API_KEY_SIRIUS_NOMINA_CORE!;
 
-export async function GET(req: NextRequest) {
+type Registro = { id: string; fields: Record<string, unknown> };
+
+/**
+ * Trae TODOS los registros de una tabla siguiendo la paginación de Airtable.
+ * Airtable devuelve máximo 100 registros por página; sin este bucle las
+ * solicitudes más allá de la primera página nunca llegaban al panel.
+ */
+async function fetchTodos(
+  baseId: string,
+  apiKey: string,
+  tabla: string,
+  params: Record<string, string | string[]>,
+): Promise<Registro[]> {
+  const registros: Registro[] = [];
+  let offset: string | undefined;
+
+  // Tope de seguridad: 20 páginas = 2000 registros
+  for (let pagina = 0; pagina < 20; pagina++) {
+    const qs = new URLSearchParams({ pageSize: "100" });
+    for (const [clave, valor] of Object.entries(params)) {
+      // "fields[]" admite varios valores repitiendo la clave
+      for (const v of Array.isArray(valor) ? valor : [valor]) qs.append(clave, v);
+    }
+    if (offset) qs.set("offset", offset);
+
+    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tabla)}?${qs}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+
+    if (!res.ok) {
+      console.error(`[PENDIENTES] Airtable ${res.status} en ${tabla}:`, await res.text());
+      break;
+    }
+
+    const data = await res.json();
+    registros.push(...(data.records ?? []));
+
+    if (!data.offset) break;
+    offset = data.offset;
+  }
+
+  return registros;
+}
+
+/**
+ * Los valores de texto libre en Airtable llegan con espacios sobrantes
+ * ("Horas Extra "), por eso toda comparación se hace sobre TRIM().
+ */
+const esPendiente = (campo: string) =>
+  `TRIM({${campo}}) = '${ESTADO_PENDIENTE}'`;
+
+export async function GET() {
   try {
     // 1. Verificar autenticación
     const token = (await cookies()).get("sirius-auth")?.value;
@@ -18,53 +71,35 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    console.log('[PENDIENTES] Usuario autenticado:', {
-      sub: payload.sub,
-      nombre: payload.nombre,
-      cedula: payload.cedula,
-      rol: payload.rol
-    });
-
     // 2. Obtener permisos del usuario
     const permisos = await obtenerPermisosEmpleado(payload.sub);
 
-    console.log('[PENDIENTES] Permisos obtenidos:', permisos.length, permisos);
-
     if (permisos.length === 0) {
-      console.log('[PENDIENTES] Usuario sin permisos de autorización');
       return NextResponse.json({
         ok: true,
         permisos: [],
-        solicitudes: {
-          permisos: [],
-          vacaciones: [],
-          novedades: []
-        },
-        debug: {
-          empleadoId: payload.sub,
-          mensaje: 'No se encontraron permisos para este empleado'
-        }
+        solicitudes: { permisos: [], vacaciones: [], novedades: [] },
       });
     }
 
     // 3. Obtener datos del autorizador (áreas)
-    const urlAutorizador = `https://api.airtable.com/v0/${BASE_ID_CORE}/Personal/${payload.sub}`;
+    const urlAutorizador = `https://api.airtable.com/v0/${BASE_ID_CORE}/${encodeURIComponent(TABLES.PERSONAL)}/${payload.sub}`;
     const resAutorizador = await fetch(urlAutorizador, {
-      headers: { Authorization: `Bearer ${API_KEY_CORE}` }
+      headers: { Authorization: `Bearer ${API_KEY_CORE}` },
     });
 
     const dataAutorizador = await resAutorizador.json();
-    const areasAutorizador = dataAutorizador.fields?.['Areas'] || [];
+    const areasAutorizador: string[] = dataAutorizador.fields?.["Areas"] || [];
 
     // 4. Determinar qué tipos de solicitudes puede ver
     const tiposPermitidos = new Set<string>();
     let ambitoGeneral = "Todos"; // Por defecto
 
-    permisos.forEach(p => {
+    permisos.forEach((p) => {
       if (p.tipo === "Todas") {
         tiposPermitidos.add("Permiso");
         tiposPermitidos.add("Vacaciones");
-        tiposPermitidos.add("Horas Extra");
+        tiposPermitidos.add(TIPO_HORAS_EXTRA);
         tiposPermitidos.add("Novedad Nómina");
       } else {
         tiposPermitidos.add(p.tipo);
@@ -76,121 +111,136 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // 5. Fetch solicitudes pendientes según permisos
-    const solicitudes: {
-      permisos: any[];
-      vacaciones: any[];
-      novedades: any[];
-    } = {
-      permisos: [],
-      vacaciones: [],
-      novedades: []
+    const puedeHorasExtra = tiposPermitidos.has(TIPO_HORAS_EXTRA);
+    const puedeOtrasNovedades = tiposPermitidos.has("Novedad Nómina");
+
+    // 5. Fetch en paralelo de las solicitudes pendientes según permisos
+    const [permisosPend, vacacionesPend, novedadesPend] = await Promise.all([
+      // ── Permisos ──
+      tiposPermitidos.has("Permiso")
+        ? fetchTodos(BASE_ID_NOVEDADES, API_KEY_NOVEDADES, TABLES.PERMISO, {
+            filterByFormula: esPendiente(FIELDS.PERMISO.ESTADO),
+            "sort[0][field]": FIELDS.PERMISO.FECHA_SOLICITUD,
+            "sort[0][direction]": "desc",
+          })
+        : Promise.resolve([]),
+
+      // ── Vacaciones (el estado inicial puede venir vacío) ──
+      tiposPermitidos.has("Vacaciones")
+        ? fetchTodos(BASE_ID_NOVEDADES, API_KEY_NOVEDADES, TABLES.VACACIONES, {
+            filterByFormula: `OR(${esPendiente(FIELDS.VACACIONES.ESTADO)}, {${FIELDS.VACACIONES.ESTADO}} = BLANK())`,
+            "sort[0][field]": FIELDS.VACACIONES.FECHA_PRESENTACION,
+            "sort[0][direction]": "desc",
+          })
+        : Promise.resolve([]),
+
+      // ── Novedades ──
+      // Si tiene ambos permisos ve todas las novedades pendientes;
+      // si solo tiene uno, se filtra por tipo (los tipos vienen como texto
+      // libre e inconsistente: "Horas Extra ", "Horas Extras", ...).
+      puedeHorasExtra || puedeOtrasNovedades
+        ? fetchTodos(BASE_ID_NOVEDADES, API_KEY_NOVEDADES, TABLES.NOVEDADES, {
+            filterByFormula: (() => {
+              const pendiente = esPendiente(FIELDS.NOVEDADES.ESTADO);
+              const esHorasExtra = `REGEX_MATCH(LOWER(TRIM({${FIELDS.NOVEDADES.TIPO}})), '^horas extra')`;
+              if (puedeHorasExtra && puedeOtrasNovedades) return pendiente;
+              return `AND(${pendiente}, ${puedeHorasExtra ? esHorasExtra : `NOT(${esHorasExtra})`})`;
+            })(),
+            "sort[0][field]": FIELDS.NOVEDADES.FECHA_CREACION,
+            "sort[0][direction]": "desc",
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const solicitudes = {
+      permisos: permisosPend,
+      vacaciones: vacacionesPend,
+      novedades: novedadesPend,
     };
-
-    // Fetch Permisos
-    if (tiposPermitidos.has("Permiso")) {
-      const urlPermisos = `https://api.airtable.com/v0/${BASE_ID_NOVEDADES}/Solicitud_Permiso?filterByFormula={Estado_Permiso}='Pendiente'&sort[0][field]=Fecha de solicitud&sort[0][direction]=desc`;
-
-      const resPermisos = await fetch(urlPermisos, {
-        headers: { Authorization: `Bearer ${API_KEY_NOVEDADES}` }
-      });
-
-      if (resPermisos.ok) {
-        const dataPermisos = await resPermisos.json();
-        solicitudes.permisos = dataPermisos.records || [];
-      }
-    }
-
-    // Fetch Vacaciones
-    if (tiposPermitidos.has("Vacaciones")) {
-      const urlVacaciones = `https://api.airtable.com/v0/${BASE_ID_NOVEDADES}/Solicitud_Vacaciones?filterByFormula=OR({Estado Solicitud}='Pendiente',{Estado Solicitud}='')&sort[0][field]=Fecha de Presentacion&sort[0][direction]=desc`;
-
-      const resVacaciones = await fetch(urlVacaciones, {
-        headers: { Authorization: `Bearer ${API_KEY_NOVEDADES}` }
-      });
-
-      if (resVacaciones.ok) {
-        const dataVacaciones = await resVacaciones.json();
-        solicitudes.vacaciones = dataVacaciones.records || [];
-      }
-    }
-
-    // Fetch Novedades (Horas Extra específicamente)
-    if (tiposPermitidos.has("Horas Extra")) {
-      const urlNovedades = `https://api.airtable.com/v0/${BASE_ID_NOVEDADES}/Reportes%20Novedades%20Nomina?filterByFormula=AND({Tipo de Novedad}='Horas Extra',{Estado del Registro}='Pendiente')&sort[0][field]=Fecha Creación&sort[0][direction]=desc`;
-
-      const resNovedades = await fetch(urlNovedades, {
-        headers: { Authorization: `Bearer ${API_KEY_NOVEDADES}` }
-      });
-
-      if (resNovedades.ok) {
-        const dataNovedades = await resNovedades.json();
-        solicitudes.novedades = dataNovedades.records || [];
-      }
-    } else if (tiposPermitidos.has("Novedad Nómina")) {
-      // Otras novedades (no Horas Extra)
-      const urlNovedades = `https://api.airtable.com/v0/${BASE_ID_NOVEDADES}/Reportes%20Novedades%20Nomina?filterByFormula=AND({Tipo de Novedad}!='Horas Extra',{Estado del Registro}='Pendiente')&sort[0][field]=Fecha Creación&sort[0][direction]=desc`;
-
-      const resNovedades = await fetch(urlNovedades, {
-        headers: { Authorization: `Bearer ${API_KEY_NOVEDADES}` }
-      });
-
-      if (resNovedades.ok) {
-        const dataNovedades = await resNovedades.json();
-        solicitudes.novedades = dataNovedades.records || [];
-      }
-    }
 
     // 6. Filtrar por ámbito si es necesario
     if (ambitoGeneral === "Solo su área" && areasAutorizador.length > 0) {
-      // Obtener todos los ID Cores de empleados del área
-      const empleadosAreaFormula = areasAutorizador.map((areaId: string) =>
-        `FIND('${areaId}', {Areas})`
-      ).join(',');
+      const empleadosAreaFormula = areasAutorizador
+        .map((areaId) => `FIND('${escapeAirtableValue(areaId)}', ARRAYJOIN({Areas}))`)
+        .join(",");
 
-      const urlEmpleadosArea = `https://api.airtable.com/v0/${BASE_ID_CORE}/Personal?filterByFormula=OR(${empleadosAreaFormula})&fields[]=ID Empleado`;
-
-      const resEmpleadosArea = await fetch(urlEmpleadosArea, {
-        headers: { Authorization: `Bearer ${API_KEY_CORE}` }
+      const empleadosArea = await fetchTodos(BASE_ID_CORE, API_KEY_CORE, TABLES.PERSONAL, {
+        filterByFormula: `OR(${empleadosAreaFormula})`,
+        "fields[]": FIELDS.PERSONAL.ID_EMPLEADO,
       });
 
-      if (resEmpleadosArea.ok) {
-        const dataEmpleadosArea = await resEmpleadosArea.json();
-        const idCoresPermitidos = new Set(
-          dataEmpleadosArea.records.map((r: any) => r.fields['ID Empleado'])
-        );
+      const idCoresPermitidos = new Set(
+        empleadosArea.map((r) => r.fields[FIELDS.PERSONAL.ID_EMPLEADO]),
+      );
 
-        // Filtrar solicitudes
-        solicitudes.permisos = solicitudes.permisos.filter(s =>
-          idCoresPermitidos.has(s.fields['ID Personal Core'])
-        );
-        solicitudes.vacaciones = solicitudes.vacaciones.filter(s =>
-          idCoresPermitidos.has(s.fields['ID Personal Core'])
-        );
-        solicitudes.novedades = solicitudes.novedades.filter(s =>
-          idCoresPermitidos.has(s.fields['ID Personal Core'])
-        );
-      }
+      const enAmbito = (r: Registro) => idCoresPermitidos.has(r.fields[FK_ID_CORE]);
+      solicitudes.permisos = solicitudes.permisos.filter(enAmbito);
+      solicitudes.vacaciones = solicitudes.vacaciones.filter(enAmbito);
+      solicitudes.novedades = solicitudes.novedades.filter(enAmbito);
     }
 
-    // 7. Retornar resultado
+    // 7. Enriquecer con datos del empleado
+    // La tabla de Novedades solo guarda "ID Personal Core": sin este paso las
+    // tarjetas de novedades se mostraban como "Sin nombre".
+    const empleados = await obtenerEmpleados(
+      solicitudes.novedades.map((r) => r.fields[FK_ID_CORE]).filter(Boolean) as string[],
+    );
+
+    const novedadesConEmpleado = solicitudes.novedades.map((r) => ({
+      ...r,
+      empleado: empleados.get(r.fields[FK_ID_CORE] as string) ?? null,
+    }));
+
+    // 8. Retornar resultado
     return NextResponse.json({
       ok: true,
-      permisos: permisos.map(p => ({
-        tipo: p.tipo,
-        ambito: p.ambito,
-        notas: p.notas
-      })),
-      solicitudes,
+      permisos: permisos.map((p) => ({ tipo: p.tipo, ambito: p.ambito, notas: p.notas })),
+      solicitudes: { ...solicitudes, novedades: novedadesConEmpleado },
       ambito: ambitoGeneral,
-      areas: areasAutorizador
+      areas: areasAutorizador,
+    });
+  } catch (error: unknown) {
+    console.error("Error en /api/solicitudes/pendientes:", error);
+    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    return NextResponse.json({ error: mensaje }, { status: 500 });
+  }
+}
+
+/**
+ * Resuelve nombre y cédula de un conjunto de idCore ("SIRIUS-PER-XXXX").
+ */
+async function obtenerEmpleados(
+  idCores: string[],
+): Promise<Map<string, { nombre: string; cedula: string }>> {
+  const mapa = new Map<string, { nombre: string; cedula: string }>();
+  const unicos = [...new Set(idCores)];
+  if (unicos.length === 0) return mapa;
+
+  // Airtable limita el tamaño de la fórmula: se consulta por lotes de 50
+  for (let i = 0; i < unicos.length; i += 50) {
+    const lote = unicos.slice(i, i + 50);
+    const formula = `OR(${lote
+      .map((id) => `{${FIELDS.PERSONAL.ID_EMPLEADO}} = '${escapeAirtableValue(id)}'`)
+      .join(",")})`;
+
+    const registros = await fetchTodos(BASE_ID_CORE, API_KEY_CORE, TABLES.PERSONAL, {
+      filterByFormula: formula,
+      "fields[]": [
+        FIELDS.PERSONAL.ID_EMPLEADO,
+        FIELDS.PERSONAL.NOMBRE,
+        FIELDS.PERSONAL.NUMERO_DOCUMENTO,
+      ],
     });
 
-  } catch (error: any) {
-    console.error("Error en /api/solicitudes/pendientes:", error);
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+    registros.forEach(({ fields }) => {
+      const idCore = fields[FIELDS.PERSONAL.ID_EMPLEADO] as string | undefined;
+      if (!idCore) return;
+      mapa.set(idCore, {
+        nombre: (fields[FIELDS.PERSONAL.NOMBRE] as string) ?? "",
+        cedula: (fields[FIELDS.PERSONAL.NUMERO_DOCUMENTO] as string) ?? "",
+      });
+    });
   }
+
+  return mapa;
 }

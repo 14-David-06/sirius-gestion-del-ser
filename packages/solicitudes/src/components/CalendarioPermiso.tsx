@@ -64,8 +64,13 @@ export function CalendarioPermiso({
   const [anclaPendiente, setAnclaPendiente] = useState<string | null>(null);
 
   const esRango = modo === "rango";
+  // Con maxDias = 1 el clic en otro día reemplaza la selección en vez de bloquearse.
+  const seleccionUnica = !esRango && maxDias === 1;
   const limiteAlcanzado =
-    !esRango && maxDias !== undefined && fechasSeleccionadas.length >= maxDias;
+    !esRango &&
+    !seleccionUnica &&
+    maxDias !== undefined &&
+    fechasSeleccionadas.length >= maxDias;
 
   const primera = fechasSeleccionadas[0];
   const ultima = fechasSeleccionadas[fechasSeleccionadas.length - 1];
@@ -98,6 +103,10 @@ export function CalendarioPermiso({
   function toggleDia(fechaStr: string) {
     if (fechasSeleccionadas.includes(fechaStr)) {
       onChange(fechasSeleccionadas.filter((f) => f !== fechaStr));
+      return;
+    }
+    if (seleccionUnica) {
+      onChange([fechaStr]);
       return;
     }
     if (maxDias !== undefined && fechasSeleccionadas.length >= maxDias) return;
@@ -319,8 +328,8 @@ export function CalendarioPermiso({
             {excluirDomingos && excluirFestivos
               ? "Los domingos y festivos no cuentan como días de vacaciones."
               : excluirDomingos
-                ? "Los domingos no cuentan."
-                : "Los festivos no cuentan."}
+                ? "Los domingos no están disponibles."
+                : "Los festivos no están disponibles."}
           </span>
         </div>
       )}
@@ -332,10 +341,16 @@ export function CalendarioPermiso({
             <span className="font-semibold" style={{ color }}>
               {fechasSeleccionadas.length}
             </span>
-            {!esRango && maxDias ? <span className="text-gray-400">de {maxDias}</span> : null}
+            {!esRango && maxDias && !seleccionUnica ? (
+              <span className="text-gray-400">de {maxDias}</span>
+            ) : null}
             <span>
               {fechasSeleccionadas.length === 1 ? "día" : "días"}
-              {excluirDomingos || excluirFestivos ? " hábiles" : ""}
+              {excluirDomingos || excluirFestivos
+                ? fechasSeleccionadas.length === 1
+                  ? " hábil"
+                  : " hábiles"
+                : ""}
             </span>
             {esRango && fechasSeleccionadas.length > 1 && (
               <span className="text-xs text-gray-400">
@@ -356,7 +371,7 @@ export function CalendarioPermiso({
       {/* Contador vacío cuando hay un tope definido */}
       {fechasSeleccionadas.length === 0 && !esRango && maxDias ? (
         <p className="mt-3 border-t border-gray-100 pt-3 text-center text-sm text-gray-400">
-          0 de {maxDias} días seleccionados
+          {seleccionUnica ? "Selecciona un día" : `0 de ${maxDias} días seleccionados`}
         </p>
       ) : null}
     </div>

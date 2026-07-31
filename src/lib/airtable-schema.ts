@@ -43,7 +43,7 @@ export const FIELDS = {
     TIPO:            "Tipo_Permiso",
     FECHA_INICIO:    "Fecha de permiso",
     FECHA_FIN:       "Fecha fin de permiso",
-    HORAS:           "Horas_Permiso",
+    HORAS:           "Horas Permiso",
     MOTIVO:          "Motivo_Permiso",
     REMUNERADO:      "Remunerado",
     COMPENSADO:      "Compensado",
@@ -89,6 +89,16 @@ export const ESTADOS_ACTIVIDAD = {
 
 // ── Estado inicial de nuevas solicitudes ──────────────────────────────────────
 export const ESTADO_PENDIENTE = "Pendiente";
+
+// ── Campos del flujo de autorización (comunes a las 3 tablas de solicitudes) ──
+export const FIELDS_AUTORIZACION = {
+  FECHA:              "Fecha_Autorizacion",
+  COMENTARIO:         "Comentario_Autorizacion",
+  AUTORIZADO_POR_ID:  "Autorizado_Por_ID",
+  AUTORIZADO_POR_NOM: "Autorizado_Por_Nombre",
+  FIRMA_S3_KEY:       "Firma_Autorizador_S3_Key",
+  FECHA_FIRMA:        "Fecha_Firma_Autorizador",
+} as const;
 
 // ── Periodo actual de días de pacto ───────────────────────────────────────────
 export const PERIODO_ACTUAL = "2026-S2";

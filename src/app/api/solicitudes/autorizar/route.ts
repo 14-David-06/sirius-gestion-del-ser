@@ -3,6 +3,13 @@ import { cookies } from "next/headers";
 import { verifyJWT } from "@/lib/auth";
 import { validarPermisoAutorizacion, type TipoSolicitud } from "@/lib/permisos";
 import { uploadFirmaTrabajador } from "@/lib/s3";
+import {
+  TABLES,
+  FIELDS,
+  FIELDS_AUTORIZACION,
+  FK_ID_CORE,
+} from "@/lib/airtable-schema";
+import { TIPO_HORAS_EXTRA } from "@/lib/constants";
 
 const BASE_ID_NOVEDADES = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
 const API_KEY_NOVEDADES = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
@@ -53,9 +60,9 @@ export async function POST(req: NextRequest) {
 
     // 3. Obtener registro de la solicitud
     const tablaMap: Record<string, string> = {
-      permiso: "Solicitud_Permiso",
-      vacaciones: "Solicitud_Vacaciones",
-      novedades: "Reportes Novedades Nomina"
+      permiso: TABLES.PERMISO,
+      vacaciones: TABLES.VACACIONES,
+      novedades: TABLES.NOVEDADES
     };
 
     const nombreTabla = tablaMap[tabla];
@@ -79,13 +86,16 @@ export async function POST(req: NextRequest) {
     } else if (tabla === "vacaciones") {
       tipoSolicitud = "Vacaciones";
     } else {
-      // Para novedades, obtener el tipo específico
-      const tipoNovedad = dataRecord.fields["Tipo de Novedad"];
-      tipoSolicitud = tipoNovedad === "Horas Extra" ? "Horas Extra" : "Novedad Nómina";
+      // Para novedades, obtener el tipo específico.
+      // El campo es texto libre y llega con espacios/plurales ("Horas Extra ", "Horas Extras").
+      const tipoNovedad = String(dataRecord.fields[FIELDS.NOVEDADES.TIPO] ?? "").trim().toLowerCase();
+      tipoSolicitud = tipoNovedad.startsWith(TIPO_HORAS_EXTRA.toLowerCase())
+        ? TIPO_HORAS_EXTRA
+        : "Novedad Nómina";
     }
 
     // 5. Validar permisos de autorización
-    const solicitudIdCore = dataRecord.fields["ID Personal Core"];
+    const solicitudIdCore = dataRecord.fields[FK_ID_CORE];
 
     const validacion = await validarPermisoAutorizacion({
       autorizadorId: payload.sub,
@@ -120,37 +130,38 @@ export async function POST(req: NextRequest) {
     let nuevoEstado: string;
 
     if (tabla === "permiso") {
-      campoEstado = "Estado_Permiso";
+      campoEstado = FIELDS.PERMISO.ESTADO;
       nuevoEstado = accion === "aprobar" ? "Concedido" : "Rechazado";
     } else if (tabla === "vacaciones") {
-      campoEstado = "Estado Solicitud";
+      campoEstado = FIELDS.VACACIONES.ESTADO;
       nuevoEstado = accion === "aprobar" ? "Aprobado" : "Rechazado";
     } else {
-      campoEstado = "Estado del Registro";
+      campoEstado = FIELDS.NOVEDADES.ESTADO;
       nuevoEstado = accion === "aprobar" ? "Autorizado" : "No autorizado";
     }
 
     // 8. Preparar campos de actualización
-    const fieldsUpdate: Record<string, any> = {
+    const fechaAutorizacion = new Date().toISOString().split('T')[0];
+    const fieldsUpdate: Record<string, unknown> = {
       [campoEstado]: nuevoEstado,
-      "Autorizado_Por_ID": payload.sub,
-      "Autorizado_Por_Nombre": payload.nombre,
-      "Fecha_Autorizacion": new Date().toISOString().split('T')[0],
-      "Firma_Autorizador_S3_Key": uploadResult.s3Key,
-      "Fecha_Firma_Autorizador": uploadResult.uploadedAt
+      [FIELDS_AUTORIZACION.AUTORIZADO_POR_ID]: payload.sub,
+      [FIELDS_AUTORIZACION.AUTORIZADO_POR_NOM]: payload.nombre,
+      [FIELDS_AUTORIZACION.FECHA]: fechaAutorizacion,
+      [FIELDS_AUTORIZACION.FIRMA_S3_KEY]: uploadResult.s3Key,
+      [FIELDS_AUTORIZACION.FECHA_FIRMA]: uploadResult.uploadedAt
     };
 
     if (comentario) {
-      fieldsUpdate["Comentario_Autorizacion"] = comentario;
+      fieldsUpdate[FIELDS_AUTORIZACION.COMENTARIO] = comentario;
     }
 
     // Campos específicos de permisos
     if (tabla === "permiso" && accion === "aprobar") {
       if (remunerado !== undefined) {
-        fieldsUpdate["Remunerado"] = remunerado;
+        fieldsUpdate[FIELDS.PERMISO.REMUNERADO] = remunerado;
       }
       if (compensado !== undefined) {
-        fieldsUpdate["Compensado"] = compensado;
+        fieldsUpdate[FIELDS.PERMISO.COMPENSADO] = compensado;
       }
       if (compensado && diasCompensacion && diasCompensacion.length > 0) {
         // Serializar días de compensación como JSON
@@ -183,15 +194,15 @@ export async function POST(req: NextRequest) {
       ok: true,
       estado: nuevoEstado,
       autorizadoPor: payload.nombre,
-      fecha: fieldsUpdate["Fecha_Autorizacion"],
+      fecha: fechaAutorizacion,
       firmaS3Key: uploadResult.s3Key,
       record: dataUpdate
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error en /api/solicitudes/autorizar:", error);
     return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
+      { error: error instanceof Error ? error.message : "Error interno del servidor" },
       { status: 500 }
     );
   }

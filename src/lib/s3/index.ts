@@ -19,14 +19,21 @@
  * │   └── contratos/
  * │       └── {idCore}/
  * │           └── {timestamp}_{cedula}.png
+ * └── permisos/
+ *     └── dias-pacto/            PDFs de permisos de día de pacto (ya autorizados)
+ *         └── {año}/{mes}/
+ *             └── {idCore}_{cedula}_{fecha}_{timestamp}.pdf
  */
 
 export { getS3Client, S3_CONFIG } from "./client";
 export {
   uploadFirmaTrabajador,
+  uploadPdfPermisoPacto,
   validateS3Key,
   type UploadFirmaParams,
   type UploadFirmaResult,
+  type UploadPdfPermisoPactoParams,
+  type UploadPdfResult,
 } from "./upload";
 export {
   getSignedUrlForFirma,

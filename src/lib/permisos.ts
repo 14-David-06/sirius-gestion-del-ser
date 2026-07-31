@@ -9,6 +9,8 @@ const API_KEY_CORE = process.env.AIRTABLE_API_KEY_SIRIUS_NOMINA_CORE!;
 export type TipoSolicitud = "Permiso" | "Vacaciones" | "Horas Extra" | "Novedad Nómina" | "Todas";
 export type Ambito = "Todos" | "Solo su área" | "Solo su equipo directo";
 
+type RegistroAirtable = { id: string; fields: Record<string, unknown> };
+
 export interface Permiso {
   id: string;
   nombre: string;
@@ -61,18 +63,18 @@ export async function obtenerPermisosEmpleado(empleadoId: string): Promise<Permi
 
     // Filtrar permisos que tengan al menos uno de los roles del empleado
     const rolesSet = new Set(rolesIds);
-    const permisosFiltrados = dataPermisos.records.filter((r: any) => {
-      const permisoRoles = r.fields['Rol'] || [];
-      return permisoRoles.some((rolId: string) => rolesSet.has(rolId));
+    const permisosFiltrados = (dataPermisos.records as RegistroAirtable[]).filter((r) => {
+      const permisoRoles = (r.fields['Rol'] as string[]) || [];
+      return permisoRoles.some((rolId) => rolesSet.has(rolId));
     });
 
-    return permisosFiltrados.map((r: any) => ({
+    return permisosFiltrados.map((r) => ({
       id: r.id,
-      nombre: r.fields['Nombre_Permiso'] || '',
+      nombre: (r.fields['Nombre_Permiso'] as string) || '',
       tipo: r.fields['Tipo_Solicitud'] as TipoSolicitud,
       ambito: r.fields['Ambito'] as Ambito,
       puedeAutorizar: r.fields['Puede_Autorizar'] === true,
-      notas: r.fields['Notas']
+      notas: r.fields['Notas'] as string | undefined
     }));
 
   } catch (error) {
