@@ -6,3 +6,11 @@ export {
   generarPdfPermisoPacto,
   type PermisoPactoPdfParams,
 } from "./permiso-pacto";
+
+export {
+  generarPdfAutorizacion,
+  formatearFechaLarga,
+  type AutorizacionPdfParams,
+  type DiaCompensacionPdf,
+  type TipoSolicitudPdf,
+} from "./autorizacion";

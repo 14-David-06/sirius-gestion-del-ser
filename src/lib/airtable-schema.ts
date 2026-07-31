@@ -50,6 +50,30 @@ export const FIELDS = {
     FECHA_COMP:      "Fecha de compensatorio",
     ESTADO:          "Estado_Permiso",
     ID_PACTO_REF:    "id_pacto_ref",
+    REVISADO:        "Revisado",
+    // Firma del trabajador
+    FIRMA_S3_KEY:      "Firma_S3_Key",
+    FECHA_FIRMA_TRAB:  "Fecha_Firma_Trabajador",
+    FIRMA_TRAB_ADJUNTO: "Firma_Trabajador_Base64",
+    // Documento oficial generado al autorizar.
+    // ⚠️ NO escribir en ARCHIVO_GENERADO ni NOMBRE_ARCHIVO: contienen los
+    // documentos HTML del sistema anterior en S3 y son solo de lectura.
+    PDF_AUTORIZACION_URL:    "PDF_Autorizacion_URL",
+    PDF_AUTORIZACION_S3_KEY: "PDF_Autorizacion_S3_Key",
+    HASH_DOCUMENTO:          "Hash_Documento",
+    PDF_FIRMADO:             "PDF_Firmado",
+    FIRMA_GESTION:           "Firma_Gestion_Ser",
+    // Documentos heredados del sistema anterior (solo lectura)
+    ARCHIVO_GENERADO:  "Archivo_Generado",
+    NOMBRE_ARCHIVO:    "Nombre_Archivo",
+    DOCUMENTO_ADJUNTO: "Documento",
+    // Datos del aprobador que firma el documento
+    FIRMA_APROBADOR:        "Firma_Aprobador",
+    FECHA_FIRMA_APROBADOR:  "Fecha_Firma_Aprobador",
+    FIRMANTE_APROB_NOMBRE:  "Firmante_Aprobador_Nombre",
+    FIRMANTE_APROB_CEDULA:  "Firmante_Aprobador_Cedula",
+    FIRMANTE_APROB_CARGO:   "Firmante_Aprobador_Cargo",
+    DIAS_COMPENSACION:      "Dias_Compensacion_Detalle",
   },
   VACACIONES: {
     NOMBRE:              "Nombre",
@@ -62,6 +86,20 @@ export const FIELDS = {
     DIAS:                "Dias Vacaciones",
     MOTIVO:              "Motivo",
     ESTADO:              "Estado Solicitud",
+    // Firma del trabajador
+    FIRMA_S3_KEY:       "Firma_S3_Key",
+    FECHA_FIRMA_TRAB:   "Fecha_Firma_Trabajador",
+    FIRMA_TRAB_ADJUNTO: "Firma_Trabajador",
+    // Documento oficial generado al autorizar.
+    // ⚠️ NO escribir en ARCHIVO_GENERADO ni NOMBRE_ARCHIVO: contienen los
+    // documentos HTML del sistema anterior en S3 y son solo de lectura.
+    PDF_AUTORIZACION_URL:    "PDF_Autorizacion_URL",
+    PDF_AUTORIZACION_S3_KEY: "PDF_Autorizacion_S3_Key",
+    HASH_DOCUMENTO:          "Hash_Documento",
+    FIRMA_GESTION:           "Firma_Gestion_Ser",
+    // Documentos heredados del sistema anterior (solo lectura)
+    ARCHIVO_GENERADO:  "Archivo",
+    NOMBRE_ARCHIVO:    "Nombre Archivo",
   },
   NOVEDADES: {
     TIPO:           "Tipo de Novedad",
@@ -69,6 +107,7 @@ export const FIELDS = {
     HORAS_EXTRA:    "Número Horas Extras",
     ESTADO:         "Estado del Registro",
     FECHA_CREACION: "Fecha Creación",
+    ADJUNTOS:       "Documentación Adicional",
   },
   DIAS_PACTO: {
     ID_COLABORADOR:   "id_colaborador_core",

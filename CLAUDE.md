@@ -22,6 +22,21 @@
 | Route guard | `src/proxy.ts` | ✅ |
 | Dashboard home | `/dashboard` | ✅ |
 | Solicitudes | `/dashboard/solicitudes/**` + `/api/solicitudes/**` + `/api/me` | ✅ |
+| Autorizaciones | `DashboardAutorizaciones` + `/api/solicitudes/pendientes` + `/api/solicitudes/autorizar` | ✅ |
+| Histórico | `/dashboard/historico` + `/api/solicitudes/historico` | ✅ |
+| Documentos de autorización | `/api/documentos/{permiso\|vacaciones}/{recordId}` (PDF firmado en S3) | ✅ |
+
+### ⚠️ Qué se autoriza y qué no
+
+**Solo permisos y vacaciones pasan por el flujo de autorización.** Las novedades de
+nómina son un **registro informativo** que el colaborador reporta: no se aprueban
+ni se rechazan, no llevan firma del trabajador y no generan documento oficial. Su
+`Estado del Registro` lo gestiona RRHH directamente en Airtable.
+
+Por eso las novedades **no** aparecen en `/api/solicitudes/pendientes`, ni en
+`DashboardAutorizaciones`, ni en `ModalAutorizarSolicitud`; `/api/solicitudes/autorizar`
+devuelve 400 si se le pasa `tabla: "novedades"`. Sí aparecen en el **histórico**,
+que es una vista de consulta.
 | Asistencia | `/dashboard/asistencia` | ❌ Pendiente |
 | Contratos | `/dashboard/contratos` | ❌ Pendiente |
 | Documentos | `/dashboard/documentos` | ❌ Pendiente |
@@ -322,7 +337,64 @@ if (body.firmaBase64) {
 }
 ```
 
-**Estructura S3**: `firmas/{tipo}/{año}/{mes}/{idCore}_{cedula}_{fecha}_{uuid}.png`
+**Estructura S3**:
+
+```
+firmas/{permisos|vacaciones|contratos|autorizaciones}/{idCore}/{timestamp}_{cedula}.png
+permisos/dias-pacto/{año}/{mes}/{idCore}_{cedula}_{fecha}_{timestamp}.pdf
+autorizaciones/{permiso|vacaciones|novedades}/{año}/{mes}/{idCore}_{recordId}_{timestamp}.pdf
+```
+
+Todo S3 key nuevo debe añadirse a `validateS3Key()` en `src/lib/s3/upload.ts`, o
+`/api/firmas` y `/api/documentos` lo rechazarán.
+
+### Documento oficial de autorización
+
+Al aprobar o rechazar, `/api/solicitudes/autorizar`:
+
+1. Sube la firma del autorizador a S3 (`firmas/autorizaciones/...`)
+2. Genera el PDF con `generarPdfAutorizacion()` — sello de la decisión, detalle,
+   días de compensación y las dos firmas (trabajador + autorizador)
+3. Archiva el PDF en S3 (`autorizaciones/...`) y calcula su SHA-256
+4. Guarda en Airtable `PDF_Autorizacion_URL` (enlace `/api/documentos/{tipo}/{recordId}`),
+   `PDF_Autorizacion_S3_Key`, `Hash_Documento` y los datos del firmante aprobador
+5. Adjunta el PDF y la firma a los campos Attachment vía `subirAdjuntoAirtable()`
+
+**Nunca guardar una URL firmada de S3 en Airtable**: expiran en 5 minutos. El enlace
+almacenado apunta a `/api/documentos/...`, que exige sesión y genera una URL nueva
+en cada visita.
+
+Si la generación del PDF falla, la decisión **igual se registra** y la respuesta
+incluye `aviso`: perder la autorización obligaría a repetir el trámite.
+
+🚫 **Campos heredados de solo lectura** — `Archivo_Generado` / `Nombre_Archivo`
+(Solicitud_Permiso) y `Archivo` / `Nombre Archivo` (Solicitud_Vacaciones) guardan
+los documentos HTML que generaba el sistema anterior en S3. **Nunca escribir en
+ellos**: sobreescribirlos borra ese historial. El documento nuevo va siempre en
+`PDF_Autorizacion_URL` / `PDF_Autorizacion_S3_Key`.
+
+### Pestaña de documentos del histórico
+
+`src/lib/documentos-solicitud.ts` unifica en una sola forma todos los archivos de
+una solicitud, repartidos entre dos generaciones del sistema:
+
+| Clase | Origen |
+|-------|--------|
+| `autorizacion` | `PDF_Autorizacion_URL`, `PDF_Firmado` |
+| `firma` | `Firma_S3_Key`, `Firma_Autorizador_S3_Key`, `Firma_Trabajador*`, `Firma_Gestion_Ser`, `Firma_Aprobador` |
+| `adjunto` | `Documentación Adicional` (novedades) |
+| `heredado` | `Archivo_Generado` / `Archivo` + `Documento` |
+
+Las S3 keys se sirven vía `/api/firmas/{key}?redirect=1` (URL firmada fresca en cada
+visita). ⚠️ Las URLs de campos Attachment las genera Airtable y **expiran en 2 horas**:
+la lista se reconstruye en cada carga del histórico, pero una pestaña abierta mucho
+tiempo puede quedar con enlaces vencidos.
+
+⚠️ **Tipos de fecha en Airtable** — `Fecha_Firma_Autorizador` y `Fecha_Autorizacion`
+son `date` (sin hora): rechazan un ISO con hora. `Fecha_Firma_Trabajador` y
+`Fecha_Firma_Aprobador` son `dateTime` y sí lo aceptan. Usar `fechaHoyBogota()`,
+nunca `new Date().toISOString().split("T")[0]` (después de las 19:00 locales UTC
+da el día siguiente).
 
 ### signJWT() / verifyJWT() — Web Crypto API, edge-compatible
 

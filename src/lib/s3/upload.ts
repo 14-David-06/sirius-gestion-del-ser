@@ -24,7 +24,7 @@ export interface UploadFirmaParams {
   base64: string;
   cedula: string;
   idCore: string;
-  tipo: "permiso" | "vacaciones" | "contrato" | "autorizacion-permiso" | "autorizacion-vacaciones" | "autorizacion-novedades";
+  tipo: "permiso" | "vacaciones" | "contrato" | "autorizacion-permiso" | "autorizacion-vacaciones";
   metadata?: Record<string, string>;
 }
 
@@ -65,7 +65,10 @@ export async function uploadFirmaTrabajador(
       ? S3_CONFIG.PATHS.FIRMAS_PERMISOS
       : tipo === "vacaciones"
       ? S3_CONFIG.PATHS.FIRMAS_VACACIONES
-      : S3_CONFIG.PATHS.FIRMAS_CONTRATOS;
+      : tipo === "contrato"
+      ? S3_CONFIG.PATHS.FIRMAS_CONTRATOS
+      // Firmas de autorización: son del autorizador, no del trabajador
+      : S3_CONFIG.PATHS.FIRMAS_AUTORIZACIONES;
 
   const s3Key = `${pathPrefix}/${idCore}/${timestamp}_${cedula}.png`;
 
@@ -118,11 +121,98 @@ export async function uploadFirmaTrabajador(
  */
 export function validateS3Key(s3Key: string): boolean {
   // Firmas:  firmas/{tipo}/{idCore}/{timestamp}_{cedula}.png
-  const firmas = /^firmas\/(permisos|vacaciones|contratos)\/SIRIUS-PER-\d{4}\/\d+_\d+\.png$/;
+  const firmas =
+    /^firmas\/(permisos|vacaciones|contratos|autorizaciones)\/SIRIUS-PER-\d{4}\/\d+_\d+\.png$/;
   // PDFs de día de pacto: permisos/dias-pacto/{año}/{mes}/{idCore}_{cedula}_{fecha}_{timestamp}.pdf
   const pdfPacto =
     /^permisos\/dias-pacto\/\d{4}\/\d{2}\/SIRIUS-PER-\d{4}_\d+_\d{4}-\d{2}-\d{2}_\d+\.pdf$/;
-  return firmas.test(s3Key) || pdfPacto.test(s3Key);
+  // PDFs de autorización: autorizaciones/{tipo}/{año}/{mes}/{idCore}_{recordId}_{timestamp}.pdf
+  const pdfAutorizacion =
+    /^autorizaciones\/(permiso|vacaciones)\/\d{4}\/\d{2}\/SIRIUS-PER-\d{4}_rec[A-Za-z0-9]+_\d+\.pdf$/;
+  return firmas.test(s3Key) || pdfPacto.test(s3Key) || pdfAutorizacion.test(s3Key);
+}
+
+export interface UploadPdfAutorizacionParams {
+  pdf: Uint8Array;
+  /** Tipo de solicitud — determina la carpeta dentro de autorizaciones/. */
+  tipo: "permiso" | "vacaciones";
+  idCore: string;
+  /** ID del registro en Airtable (recXXX) — hace único el archivo por solicitud. */
+  recordId: string;
+  /** Fecha de la autorización, ISO "YYYY-MM-DD" — organiza el archivo por año/mes. */
+  fechaAutorizacion: string;
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Archiva en S3 el PDF del documento oficial de una solicitud ya resuelta
+ * (aprobada o rechazada) por el flujo de autorización.
+ *
+ * Estructura: autorizaciones/{tipo}/{año}/{mes}/{idCore}_{recordId}_{timestamp}.pdf
+ */
+export async function uploadPdfAutorizacion(
+  params: UploadPdfAutorizacionParams
+): Promise<UploadPdfResult> {
+  const { pdf, tipo, idCore, recordId, fechaAutorizacion, metadata = {} } = params;
+
+  if (!pdf || pdf.byteLength === 0) {
+    throw new Error("PDF vacío");
+  }
+
+  const [anio, mes] = fechaAutorizacion.split("-");
+  if (!anio || !mes) {
+    throw new Error(`fechaAutorizacion inválida: ${fechaAutorizacion}`);
+  }
+
+  const timestamp = Date.now();
+  const filename = `${idCore}_${recordId}_${timestamp}.pdf`;
+  const s3Key = `${S3_CONFIG.PATHS.PDF_AUTORIZACIONES}/${tipo}/${anio}/${mes}/${filename}`;
+  const uploadedAt = new Date().toISOString();
+  const buffer = Buffer.from(pdf);
+  const sha256 = createHash("sha256").update(buffer).digest("hex");
+
+  const auditMetadata: Record<string, string> = {
+    idCore,
+    recordId,
+    tipo: `autorizacion-${tipo}`,
+    fechaAutorizacion,
+    sha256,
+    uploadedAt,
+    source: "sirius-gestion-del-ser",
+  };
+  for (const [clave, valor] of Object.entries(metadata)) {
+    auditMetadata[clave] = sanitizeForS3Metadata(valor);
+  }
+
+  const client = getS3Client();
+
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: S3_CONFIG.BUCKET_FIRMAS,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: "application/pdf",
+        ContentDisposition: `inline; filename="${filename}"`,
+        ServerSideEncryption: "AES256",
+        Metadata: auditMetadata,
+      })
+    );
+
+    return {
+      s3Key,
+      bucket: S3_CONFIG.BUCKET_FIRMAS,
+      uploadedAt,
+      url: `https://${S3_CONFIG.BUCKET_FIRMAS}.s3.${S3_CONFIG.REGION}.amazonaws.com/${s3Key}`,
+      sha256,
+      filename,
+    };
+  } catch (error) {
+    console.error("[S3 Upload PDF Autorizacion Error]", error);
+    throw new Error(
+      `Error al subir PDF de autorización a S3: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
 }
 
 export interface UploadPdfPermisoPactoParams {

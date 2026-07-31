@@ -61,6 +61,34 @@ export async function getSignedUrlForFirma(
 }
 
 /**
+ * Descarga el contenido de un objeto de S3.
+ *
+ * Se usa para incrustar la firma del trabajador dentro del PDF de autorización:
+ * a diferencia de getSignedUrlForFirma, aquí el servidor necesita los bytes.
+ *
+ * @returns Buffer con el contenido, o null si el objeto no existe / no se pudo leer.
+ */
+export async function descargarObjetoS3(s3Key: string): Promise<Buffer | null> {
+  if (!validateS3Key(s3Key)) {
+    console.error(`[S3 Download] S3 key inválido: ${s3Key}`);
+    return null;
+  }
+
+  try {
+    const client = getS3Client();
+    const respuesta = await client.send(
+      new GetObjectCommand({ Bucket: S3_CONFIG.BUCKET_FIRMAS, Key: s3Key })
+    );
+
+    if (!respuesta.Body) return null;
+    return Buffer.from(await respuesta.Body.transformToByteArray());
+  } catch (error) {
+    console.error(`[S3 Download Error - ${s3Key}]`, error);
+    return null;
+  }
+}
+
+/**
  * Genera múltiples URLs firmadas en paralelo
  *
  * Útil para interfaces que muestran listas de solicitudes con firmas

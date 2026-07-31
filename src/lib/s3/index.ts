@@ -16,27 +16,37 @@
  * │   ├── vacaciones/
  * │   │   └── {idCore}/
  * │   │       └── {timestamp}_{cedula}.png
- * │   └── contratos/
+ * │   ├── contratos/
+ * │   │   └── {idCore}/
+ * │   │       └── {timestamp}_{cedula}.png
+ * │   └── autorizaciones/        Firmas de quien autoriza (no del trabajador)
  * │       └── {idCore}/
  * │           └── {timestamp}_{cedula}.png
- * └── permisos/
- *     └── dias-pacto/            PDFs de permisos de día de pacto (ya autorizados)
+ * ├── permisos/
+ * │   └── dias-pacto/            PDFs de permisos de día de pacto (ya autorizados)
+ * │       └── {año}/{mes}/
+ * │           └── {idCore}_{cedula}_{fecha}_{timestamp}.pdf
+ * └── autorizaciones/            PDFs de solicitudes resueltas (aprobadas o rechazadas)
+ *     └── {permiso|vacaciones}/
  *         └── {año}/{mes}/
- *             └── {idCore}_{cedula}_{fecha}_{timestamp}.pdf
+ *             └── {idCore}_{recordId}_{timestamp}.pdf
  */
 
 export { getS3Client, S3_CONFIG } from "./client";
 export {
   uploadFirmaTrabajador,
   uploadPdfPermisoPacto,
+  uploadPdfAutorizacion,
   validateS3Key,
   type UploadFirmaParams,
   type UploadFirmaResult,
   type UploadPdfPermisoPactoParams,
+  type UploadPdfAutorizacionParams,
   type UploadPdfResult,
 } from "./upload";
 export {
   getSignedUrlForFirma,
   getSignedUrlsForFirmas,
+  descargarObjetoS3,
   type GetSignedUrlParams,
 } from "./download";

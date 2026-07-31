@@ -66,6 +66,12 @@ export async function GET(
     // Generar URL firmada
     const signedUrl = await getSignedUrlForFirma({ s3Key, expiresIn });
 
+    // Con ?redirect=1 el endpoint se puede usar directamente como href de un
+    // enlace: abre la imagen en lugar de devolver JSON.
+    if (url.searchParams.get("redirect") === "1") {
+      return NextResponse.redirect(signedUrl);
+    }
+
     // Calcular timestamp de expiración
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 

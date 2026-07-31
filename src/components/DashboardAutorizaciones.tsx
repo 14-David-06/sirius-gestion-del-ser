@@ -13,10 +13,13 @@ interface Permiso {
 interface Solicitud {
   id: string;
   fields: Record<string, CampoAirtable>;
-  empleado?: { nombre: string; cedula: string } | null;
 }
 
-type Categoria = "permisos" | "vacaciones" | "novedades";
+/**
+ * Las novedades de nómina no aparecen aquí: son un registro informativo del
+ * colaborador, no un trámite que se apruebe o rechace.
+ */
+type Categoria = "permisos" | "vacaciones";
 type Tab = "todas" | Categoria;
 
 interface DatosAutorizacion {
@@ -39,11 +42,6 @@ const ESTILO_CATEGORIA: Record<Categoria, { etiqueta: string; chip: string; acti
     chip: "bg-green-50 text-green-700 border-green-200",
     activo: "border-green-500 text-green-600",
   },
-  novedades: {
-    etiqueta: "Novedad",
-    chip: "bg-orange-50 text-orange-700 border-orange-200",
-    activo: "border-orange-500 text-orange-600",
-  },
 };
 
 export default function DashboardAutorizaciones() {
@@ -54,7 +52,7 @@ export default function DashboardAutorizaciones() {
   const [busqueda, setBusqueda] = useState("");
   const [visibles, setVisibles] = useState(PAGINA);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<{
-    tipo: "permiso" | "vacaciones" | "novedades";
+    tipo: "permiso" | "vacaciones";
     solicitud: Solicitud;
   } | null>(null);
 
@@ -141,7 +139,6 @@ export default function DashboardAutorizaciones() {
     todas: todas.length,
     permisos: datos.solicitudes.permisos?.length ?? 0,
     vacaciones: datos.solicitudes.vacaciones?.length ?? 0,
-    novedades: datos.solicitudes.novedades?.length ?? 0,
   };
 
   return (
@@ -216,7 +213,7 @@ export default function DashboardAutorizaciones() {
         {/* Tabs + búsqueda */}
         <div className="px-6 sm:px-8 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
           <div className="flex gap-5 overflow-x-auto">
-            {(["todas", "permisos", "vacaciones", "novedades"] as Tab[]).map((t) => {
+            {(["todas", "permisos", "vacaciones"] as Tab[]).map((t) => {
               const activo = tab === t;
               const estiloActivo =
                 t === "todas" ? "border-gray-900 text-gray-900" : ESTILO_CATEGORIA[t].activo;
@@ -332,8 +329,8 @@ function TarjetaSolicitud({
 }) {
   const f = solicitud.fields;
   const estilo = ESTILO_CATEGORIA[categoria];
-  const nombre = (f[FIELDS.PERMISO.NOMBRE] as string) || solicitud.empleado?.nombre || "Sin nombre";
-  const cedula = (f[FIELDS.PERMISO.CEDULA] as string) || solicitud.empleado?.cedula || "";
+  const nombre = (f[FIELDS.PERMISO.NOMBRE] as string) || "Sin nombre";
+  const cedula = (f[FIELDS.PERMISO.CEDULA] as string) || "";
   const cargo = f[FIELDS.PERMISO.CARGO] as string | undefined;
 
   return (
@@ -369,7 +366,7 @@ function TarjetaSolicitud({
           {motivo(categoria, solicitud) && (
             <div className="mt-3 rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
               <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                {categoria === "novedades" ? "Descripción" : "Motivo"}
+                Motivo
               </p>
               <p className="mt-0.5 text-sm text-gray-700 whitespace-pre-line">
                 {motivo(categoria, solicitud)}
@@ -408,9 +405,7 @@ function fechaOrden(categoria: Categoria, s: Solicitud): number {
   const campo =
     categoria === "permisos"
       ? FIELDS.PERMISO.FECHA_SOLICITUD
-      : categoria === "vacaciones"
-        ? FIELDS.VACACIONES.FECHA_PRESENTACION
-        : FIELDS.NOVEDADES.FECHA_CREACION;
+      : FIELDS.VACACIONES.FECHA_PRESENTACION;
   const valor = s.fields[campo];
   const ts = typeof valor === "string" ? new Date(valor).getTime() : NaN;
   return isNaN(ts) ? 0 : ts;
@@ -431,33 +426,18 @@ function datosSolicitud(categoria: Categoria, s: Solicitud): { etiqueta: string;
     ];
   }
 
-  if (categoria === "vacaciones") {
-    return [
-      { etiqueta: "Inicio", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_INICIO]) },
-      { etiqueta: "Fin", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_FIN]) },
-      { etiqueta: "Días", valor: texto(f[FIELDS.VACACIONES.DIAS]) },
-      { etiqueta: "Reintegro", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_REINTEGRO]) },
-      { etiqueta: "Presentada", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_PRESENTACION]) },
-    ];
-  }
-
   return [
-    { etiqueta: "Tipo", valor: texto(f[FIELDS.NOVEDADES.TIPO]) },
-    ...(f[FIELDS.NOVEDADES.HORAS_EXTRA]
-      ? [{ etiqueta: "Horas extra", valor: texto(f[FIELDS.NOVEDADES.HORAS_EXTRA]) }]
-      : []),
-    { etiqueta: "Reportada", valor: formatearFecha(f[FIELDS.NOVEDADES.FECHA_CREACION]) },
-    { etiqueta: "ID empleado", valor: texto(f[FK_ID_CORE]) },
+    { etiqueta: "Inicio", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_INICIO]) },
+    { etiqueta: "Fin", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_FIN]) },
+    { etiqueta: "Días", valor: texto(f[FIELDS.VACACIONES.DIAS]) },
+    { etiqueta: "Reintegro", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_REINTEGRO]) },
+    { etiqueta: "Presentada", valor: formatearFecha(f[FIELDS.VACACIONES.FECHA_PRESENTACION]) },
   ];
 }
 
 function motivo(categoria: Categoria, s: Solicitud): string {
   const campo =
-    categoria === "permisos"
-      ? FIELDS.PERMISO.MOTIVO
-      : categoria === "vacaciones"
-        ? FIELDS.VACACIONES.MOTIVO
-        : FIELDS.NOVEDADES.DESCRIPCION;
+    categoria === "permisos" ? FIELDS.PERMISO.MOTIVO : FIELDS.VACACIONES.MOTIVO;
   const valor = s.fields[campo];
   return typeof valor === "string" ? valor.trim() : "";
 }
@@ -466,12 +446,9 @@ function textoBuscable(categoria: Categoria, s: Solicitud): string {
   return [
     ESTILO_CATEGORIA[categoria].etiqueta,
     s.fields[FIELDS.PERMISO.NOMBRE],
-    s.empleado?.nombre,
     s.fields[FIELDS.PERMISO.CEDULA],
-    s.empleado?.cedula,
     s.fields[FIELDS.PERMISO.CARGO],
     s.fields[FIELDS.PERMISO.TIPO],
-    s.fields[FIELDS.NOVEDADES.TIPO],
     s.fields[FK_ID_CORE],
     motivo(categoria, s),
   ]
