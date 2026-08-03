@@ -55,6 +55,7 @@ export const FIELDS = {
     FIRMA_S3_KEY:      "Firma_S3_Key",
     FECHA_FIRMA_TRAB:  "Fecha_Firma_Trabajador",
     FIRMA_TRAB_ADJUNTO: "Firma_Trabajador_Base64",
+    FIRMA_TRAB_TEXTO:  "Firma_Trabajador",
     // Documento oficial generado al autorizar.
     // ⚠️ NO escribir en ARCHIVO_GENERADO ni NOMBRE_ARCHIVO: contienen los
     // documentos HTML del sistema anterior en S3 y son solo de lectura.
@@ -62,7 +63,11 @@ export const FIELDS = {
     PDF_AUTORIZACION_S3_KEY: "PDF_Autorizacion_S3_Key",
     HASH_DOCUMENTO:          "Hash_Documento",
     PDF_FIRMADO:             "PDF_Firmado",
+    // Gemelo de PDF_AUTORIZACION_URL heredado del sistema anterior, pero de
+    // escritura: guarda el mismo enlace estable a /api/documentos.
+    URL_PDF_FIRMADO:         "URL_PDF_Firmado",
     FIRMA_GESTION:           "Firma_Gestion_Ser",
+    FECHA_FIRMA_GESTION:     "Fecha_Firma_Gestion",
     // Documentos heredados del sistema anterior (solo lectura)
     ARCHIVO_GENERADO:  "Archivo_Generado",
     NOMBRE_ARCHIVO:    "Nombre_Archivo",

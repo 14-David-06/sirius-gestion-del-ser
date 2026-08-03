@@ -12,6 +12,7 @@ import { TIPO_DIA_PACTO } from "../lib/constants";
 import type { ResolvePayload } from "../types";
 import { uploadFirmaTrabajador, uploadPdfPermisoPacto } from "@/lib/s3";
 import { generarPdfPermisoPacto } from "@/lib/pdf";
+import { subirAdjuntoAirtable } from "@/lib/airtable-attachments";
 
 /** Texto que queda como autorizador en los permisos de día de pacto. */
 const AUTORIZACION_AUTOMATICA = "Autorización automática — Día de Pacto";
@@ -164,8 +165,11 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
           },
         });
 
-        // Guardar referencia S3 en Airtable (NO el base64)
+        // Guardar referencia S3 en Airtable (NO el base64).
+        // Firma_Trabajador es el gemelo en texto largo del mismo dato: guarda la
+        // S3 key, no el PNG. El adjunto se sube aparte, ya con el recordId.
         fields[FIELDS.PERMISO.FIRMA_S3_KEY] = uploadResult.s3Key;
+        fields[FIELDS.PERMISO.FIRMA_TRAB_TEXTO] = uploadResult.s3Key;
         fields[FIELDS.PERMISO.FECHA_FIRMA_TRAB] = uploadResult.uploadedAt;
       } catch (error) {
         console.error("[permiso POST - S3 upload]", error);
@@ -192,6 +196,21 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
     }
 
     const permisoCreado = await res.json();
+
+    // Gemelo adjunto de la firma: Firma_Trabajador_Base64 solo se puede llenar
+    // con el recordId ya creado. Es comodidad de consulta dentro de Airtable —
+    // la referencia canónica es la S3 key, así que un fallo no bloquea.
+    if (body.firmaBase64) {
+      await subirAdjuntoAirtable({
+        baseId: base(),
+        apiKey: key(),
+        recordId: permisoCreado.id,
+        campo: FIELDS.PERMISO.FIRMA_TRAB_ADJUNTO,
+        contenido: Buffer.from(body.firmaBase64, "base64"),
+        filename: `firma_trabajador_${payload.idCore}.png`,
+        contentType: "image/png",
+      });
+    }
 
     // Si es día de pacto, actualizar saldo en Dias_Pacto
     if (esDiaPacto && pactoRecord) {
@@ -269,6 +288,10 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
 
         pdfUrl = subida.url;
 
+        // Enlace estable al documento: /api/documentos resuelve una URL firmada
+        // fresca en cada visita, porque el objeto de S3 es privado.
+        const enlace = `${req.nextUrl.origin}/api/documentos/permiso/${permisoCreado.id}`;
+
         const resPdf = await fetch(
           `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.PERMISO)}/${permisoCreado.id}`,
           {
@@ -279,6 +302,12 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
                 [FIELDS.PERMISO.URL_PDF]: subida.url,
                 [FIELDS.PERMISO.NOMBRE_ARCHIVO]: subida.filename,
                 [FIELDS.PERMISO.HASH_DOCUMENTO]: subida.sha256,
+                // Gemelos que llena /api/solicitudes/autorizar en los permisos
+                // normales. PDF_Autorizacion_S3_Key es además el campo que lee
+                // /api/documentos para firmar la URL.
+                [FIELDS.PERMISO.PDF_AUTORIZACION_URL]: enlace,
+                [FIELDS.PERMISO.PDF_AUTORIZACION_S3_KEY]: subida.s3Key,
+                [FIELDS.PERMISO.REVISADO]: true,
               },
             }),
           }
@@ -290,6 +319,17 @@ export function createPermisoHandlers(resolvePayload: ResolvePayload) {
             `IMPORTANTE: PDF ${subida.s3Key} archivado pero no se pudo referenciar en el permiso ${permisoCreado.id}`
           );
         }
+
+        // Gemelo adjunto del documento, igual que en el flujo de autorización.
+        await subirAdjuntoAirtable({
+          baseId: base(),
+          apiKey: key(),
+          recordId: permisoCreado.id,
+          campo: FIELDS.PERMISO.PDF_FIRMADO,
+          contenido: Buffer.from(pdf),
+          filename: subida.filename,
+          contentType: "application/pdf",
+        });
       } catch (error) {
         console.error("[permiso POST - pdf dia de pacto]", error);
         console.error(

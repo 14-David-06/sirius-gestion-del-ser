@@ -306,6 +306,11 @@ export async function POST(req: NextRequest) {
         fieldsUpdate[FIELDS.PERMISO.FIRMANTE_APROB_CARGO] = autorizador?.cargo ?? "";
         // Fecha_Firma_Aprobador sí es dateTime: acepta el ISO completo
         fieldsUpdate[FIELDS.PERMISO.FECHA_FIRMA_APROBADOR] = firmaAutorizador.uploadedAt;
+        // Gemelos del documento y de la firma del autorizador. URL_PDF_Firmado
+        // guarda el mismo enlace estable, nunca la URL firmada de S3;
+        // Fecha_Firma_Gestion es dateTime, así que acepta el ISO completo.
+        fieldsUpdate[FIELDS.PERMISO.URL_PDF_FIRMADO] = enlace;
+        fieldsUpdate[FIELDS.PERMISO.FECHA_FIRMA_GESTION] = firmaAutorizador.uploadedAt;
       } else {
         fieldsUpdate[FIELDS.VACACIONES.PDF_AUTORIZACION_URL] = enlace;
         fieldsUpdate[FIELDS.VACACIONES.PDF_AUTORIZACION_S3_KEY] = documento.s3Key;
@@ -358,6 +363,17 @@ export async function POST(req: NextRequest) {
             apiKey: API_KEY_NOVEDADES,
             recordId,
             campo: FIELDS.PERMISO.FIRMA_APROBADOR,
+            contenido: Buffer.from(firmaBase64, "base64"),
+            filename: `firma_autorizador_${payload.idCore}.png`,
+            contentType: "image/png",
+          }),
+          // Gemelo de Firma_Aprobador: la tabla arrastra ambos campos de firma
+          // del autorizador desde el sistema anterior.
+          subirAdjuntoAirtable({
+            baseId: BASE_ID_NOVEDADES,
+            apiKey: API_KEY_NOVEDADES,
+            recordId,
+            campo: FIELDS.PERMISO.FIRMA_GESTION,
             contenido: Buffer.from(firmaBase64, "base64"),
             filename: `firma_autorizador_${payload.idCore}.png`,
             contentType: "image/png",

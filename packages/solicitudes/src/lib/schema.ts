@@ -28,8 +28,13 @@ export const FIELDS = {
     FECHA_COMP:           "Fecha de compensatorio",
     ESTADO:               "Estado_Permiso",
     DIAS_PACTO_LINK:      "Dias_Pacto",  // Relación multipleRecordLinks → tabla Dias_Pacto
+    REVISADO:             "Revisado",
     FIRMA_S3_KEY:         "Firma_S3_Key",
     FECHA_FIRMA_TRAB:     "Fecha_Firma_Trabajador",
+    // Gemelos de la firma del trabajador: la tabla arrastra tres campos para el
+    // mismo dato (S3 key, adjunto y texto). Se llenan los tres al radicar.
+    FIRMA_TRAB_ADJUNTO:   "Firma_Trabajador_Base64",
+    FIRMA_TRAB_TEXTO:     "Firma_Trabajador",
     FIRMA_AUTORIZADOR_S3: "Firma_Autorizador_S3_Key",
     FECHA_FIRMA_AUTORIZADOR: "Fecha_Firma_Autorizador",
     AUTORIZADO_POR_ID:    "Autorizado_Por_ID",
@@ -40,6 +45,10 @@ export const FIELDS = {
     URL_PDF:              "URL_PDF_Firmado",
     NOMBRE_ARCHIVO:       "Nombre_Archivo",
     HASH_DOCUMENTO:       "Hash_Documento",
+    // Gemelos del documento oficial, los mismos que llena /api/solicitudes/autorizar.
+    PDF_AUTORIZACION_URL:    "PDF_Autorizacion_URL",
+    PDF_AUTORIZACION_S3_KEY: "PDF_Autorizacion_S3_Key",
+    PDF_FIRMADO:             "PDF_Firmado",
   },
   VACACIONES: {
     NOMBRE:             "Nombre",
