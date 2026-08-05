@@ -43,9 +43,26 @@ interface AdjuntoAirtable {
   type?: string;
 }
 
-/** Enlace autenticado que resuelve una URL firmada fresca para un objeto de S3. */
-function enlaceS3(s3Key: string): string {
-  return `/api/firmas/${encodeURIComponent(s3Key)}?redirect=1`;
+/** Tipo de solicitud en la URL de /api/documentos (singular). */
+const TIPO_EN_RUTA: Partial<Record<CategoriaSolicitud, string>> = {
+  permisos: "permiso",
+  vacaciones: "vacaciones",
+};
+
+/**
+ * Enlace autenticado a un archivo de la solicitud.
+ *
+ * Se identifica por (tipo, recordId, clase) y **nunca** por su S3 key: el
+ * endpoint tiene que poder comprobar que quien pide el archivo tiene derecho a
+ * esa solicitud, y una key de S3 no dice a quién pertenece.
+ */
+function enlaceArchivo(
+  categoria: CategoriaSolicitud,
+  recordId: string,
+  clase: "documento" | "firma-trabajador" | "firma-autorizador",
+): string | null {
+  const tipo = TIPO_EN_RUTA[categoria];
+  return tipo ? `/api/documentos/${tipo}/${recordId}/${clase}` : null;
 }
 
 /**
@@ -98,26 +115,37 @@ export function documentosDeSolicitud(
   // ── Firma de quien autorizó (común a permisos y vacaciones) ──
   const firmaAutorizador = fields[FIELDS_AUTORIZACION.FIRMA_S3_KEY];
   if (typeof firmaAutorizador === "string" && firmaAutorizador) {
-    agregar("firma", "Firma del autorizador", enlaceS3(firmaAutorizador), {
-      formato: "image/png",
-      sufijo: "aut",
-    });
+    agregar(
+      "firma",
+      "Firma del autorizador",
+      enlaceArchivo(categoria, recordId, "firma-autorizador"),
+      { formato: "image/png", sufijo: "aut" },
+    );
   }
 
   if (categoria === "permisos") {
     const F = FIELDS.PERMISO;
-    agregar("autorizacion", "Documento de autorización (PDF)", fields[F.PDF_AUTORIZACION_URL], {
-      formato: "application/pdf",
-      sufijo: "pdf",
-    });
+    // Se deriva el enlace en vez de usar PDF_Autorizacion_URL: ese campo guarda
+    // una URL absoluta con el origen de quien autorizó (hay registros con
+    // "http://localhost:3000"), así que solo sirve como rastro de auditoría.
+    if (fields[F.PDF_AUTORIZACION_S3_KEY]) {
+      agregar(
+        "autorizacion",
+        "Documento de autorización (PDF)",
+        enlaceArchivo(categoria, recordId, "documento"),
+        { formato: "application/pdf", sufijo: "pdf" },
+      );
+    }
     agregarAdjuntos("autorizacion", "PDF firmado", fields[F.PDF_FIRMADO]);
 
     const firmaTrab = fields[F.FIRMA_S3_KEY];
     if (typeof firmaTrab === "string" && firmaTrab) {
-      agregar("firma", "Firma del trabajador", enlaceS3(firmaTrab), {
-        formato: "image/png",
-        sufijo: "trab",
-      });
+      agregar(
+        "firma",
+        "Firma del trabajador",
+        enlaceArchivo(categoria, recordId, "firma-trabajador"),
+        { formato: "image/png", sufijo: "trab" },
+      );
     }
     agregarAdjuntos("firma", "Firma del trabajador", fields[F.FIRMA_TRAB_ADJUNTO]);
     agregarAdjuntos("firma", "Firma de Gestión del Ser", fields[F.FIRMA_GESTION]);
@@ -138,17 +166,26 @@ export function documentosDeSolicitud(
 
   if (categoria === "vacaciones") {
     const F = FIELDS.VACACIONES;
-    agregar("autorizacion", "Documento de autorización (PDF)", fields[F.PDF_AUTORIZACION_URL], {
-      formato: "application/pdf",
-      sufijo: "pdf",
-    });
+    // Se deriva el enlace en vez de usar PDF_Autorizacion_URL: ese campo guarda
+    // una URL absoluta con el origen de quien autorizó (hay registros con
+    // "http://localhost:3000"), así que solo sirve como rastro de auditoría.
+    if (fields[F.PDF_AUTORIZACION_S3_KEY]) {
+      agregar(
+        "autorizacion",
+        "Documento de autorización (PDF)",
+        enlaceArchivo(categoria, recordId, "documento"),
+        { formato: "application/pdf", sufijo: "pdf" },
+      );
+    }
 
     const firmaTrab = fields[F.FIRMA_S3_KEY];
     if (typeof firmaTrab === "string" && firmaTrab) {
-      agregar("firma", "Firma del trabajador", enlaceS3(firmaTrab), {
-        formato: "image/png",
-        sufijo: "trab",
-      });
+      agregar(
+        "firma",
+        "Firma del trabajador",
+        enlaceArchivo(categoria, recordId, "firma-trabajador"),
+        { formato: "image/png", sufijo: "trab" },
+      );
     }
     agregarAdjuntos("firma", "Firma del trabajador", fields[F.FIRMA_TRAB_ADJUNTO]);
     agregarAdjuntos("firma", "Firma de Gestión del Ser", fields[F.FIRMA_GESTION]);

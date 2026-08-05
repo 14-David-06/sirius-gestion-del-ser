@@ -38,8 +38,10 @@ export async function getSignedUrlForFirma(
     throw new Error(`S3 key inválido: ${s3Key}`);
   }
 
-  // Validar rango de expiración (1 min - 1 hora)
-  if (expiresIn < 60 || expiresIn > 3600) {
+  // Validar rango de expiración (1 min - 1 hora).
+  // Number.isFinite primero: con NaN las dos comparaciones dan false y el
+  // guardia no dispararía, dejando pasar un expiresIn inválido al SDK.
+  if (!Number.isFinite(expiresIn) || expiresIn < 60 || expiresIn > 3600) {
     throw new Error("expiresIn debe estar entre 60 y 3600 segundos");
   }
 
@@ -84,6 +86,50 @@ export async function descargarObjetoS3(s3Key: string): Promise<Buffer | null> {
     return Buffer.from(await respuesta.Body.transformToByteArray());
   } catch (error) {
     console.error(`[S3 Download Error - ${s3Key}]`, error);
+    return null;
+  }
+}
+
+export interface ObjetoS3 {
+  cuerpo: ReadableStream<Uint8Array>;
+  contentType: string;
+  contentLength?: number;
+  /** SHA-256 que se guardó al subir el objeto, si lo tiene. */
+  sha256?: string;
+}
+
+/**
+ * Abre un objeto de S3 como stream, para servirlo a través de un route handler.
+ *
+ * Frente a `getSignedUrlForFirma`, esto mantiene el archivo detrás del JWT: una
+ * URL firmada sale del perímetro y durante su vigencia funciona sin sesión, así
+ * que basta compartirla —o que aparezca en un log o en un `Referer`— para que un
+ * tercero acceda al documento.
+ *
+ * @returns El objeto, o null si no existe o el key es inválido.
+ */
+export async function obtenerObjetoS3(s3Key: string): Promise<ObjetoS3 | null> {
+  if (!validateS3Key(s3Key)) {
+    console.error(`[S3 Stream] S3 key inválido: ${s3Key}`);
+    return null;
+  }
+
+  try {
+    const client = getS3Client();
+    const respuesta = await client.send(
+      new GetObjectCommand({ Bucket: S3_CONFIG.BUCKET_FIRMAS, Key: s3Key })
+    );
+
+    if (!respuesta.Body) return null;
+
+    return {
+      cuerpo: respuesta.Body.transformToWebStream(),
+      contentType: respuesta.ContentType ?? "application/octet-stream",
+      contentLength: respuesta.ContentLength,
+      sha256: respuesta.Metadata?.sha256,
+    };
+  } catch (error) {
+    console.error(`[S3 Stream Error - ${s3Key}]`, error);
     return null;
   }
 }

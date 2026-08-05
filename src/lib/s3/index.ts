@@ -48,5 +48,7 @@ export {
   getSignedUrlForFirma,
   getSignedUrlsForFirmas,
   descargarObjetoS3,
+  obtenerObjetoS3,
   type GetSignedUrlParams,
+  type ObjetoS3,
 } from "./download";

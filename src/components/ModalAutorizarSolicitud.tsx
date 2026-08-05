@@ -236,7 +236,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
                   {f["Fecha_Firma_Trabajador"] ? ` el ${fmtFecha(f["Fecha_Firma_Trabajador"])}` : ""}
                 </p>
                 <a
-                  href={`/api/firmas/${encodeURIComponent(String(f["Firma_S3_Key"]))}?redirect=1`}
+                  href={`/api/documentos/${tipo}/${solicitud.id}/firma-trabajador`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-auto text-sm font-medium text-blue-600 hover:text-blue-700"

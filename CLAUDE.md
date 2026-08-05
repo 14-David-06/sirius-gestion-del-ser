@@ -24,7 +24,33 @@
 | Solicitudes | `/dashboard/solicitudes/**` + `/api/solicitudes/**` + `/api/me` | ✅ |
 | Autorizaciones | `DashboardAutorizaciones` + `/api/solicitudes/pendientes` + `/api/solicitudes/autorizar` | ✅ |
 | Histórico | `/dashboard/historico` + `/api/solicitudes/historico` | ✅ |
-| Documentos de autorización | `/api/documentos/{permiso\|vacaciones}/{recordId}` (PDF firmado en S3) | ✅ |
+| Documentos de autorización | `/api/documentos/{permiso\|vacaciones}/{recordId}[/{clase}]` (streaming desde S3) | ✅ |
+
+### 🔒 Acceso a documentos — regla no negociable
+
+Un documento de permiso lleva el motivo (a menudo médico), la cédula y la firma
+manuscrita del trabajador. **Tener sesión no es autorización.** Todo acceso pasa
+por `autorizarAccesoSolicitud()` en `src/lib/acceso-documentos.ts`, que concede
+solo a: el dueño (`ID Personal Core` === `payload.idCore`), quien autorizó
+(`Autorizado_Por_ID` === `payload.sub`) y quien tiene potestad de autorizar según
+`validarPermisoAutorizacion()`. Al denegar responde **404, no 403**: un 403
+confirmaría que el registro existe.
+
+Dos reglas que se derivan de ahí:
+
+1. **El cliente nunca nombra un archivo de S3.** Se pide
+   `(tipo, recordId, clase)` y el servidor resuelve la key. Un endpoint que reciba
+   una S3 key del navegador no puede comprobar de quién es el archivo — por eso se
+   eliminó `/api/firmas/{key}`.
+2. **No se entregan URLs firmadas al navegador.** El archivo se transmite por el
+   route (`servirDocumentoSolicitud()`): una URL firmada sale del perímetro y
+   funciona sin sesión mientras viva. `getSignedUrlForFirma()` queda para uso
+   interno del servidor.
+
+Las keys que salen de campos de Airtable se verifican con `recursoCoincide()`
+antes de servirse: esos campos son texto editable, y sin la comprobación bastaría
+cambiar `Firma_S3_Key` a mano para que un acceso legítimo sirviera el archivo de
+otra persona.
 
 ### ⚠️ Qué se autoriza y qué no
 
@@ -346,7 +372,7 @@ autorizaciones/{permiso|vacaciones|novedades}/{año}/{mes}/{idCore}_{recordId}_{
 ```
 
 Todo S3 key nuevo debe añadirse a `validateS3Key()` en `src/lib/s3/upload.ts`, o
-`/api/firmas` y `/api/documentos` lo rechazarán.
+`/api/documentos` lo rechazará.
 
 ### Documento oficial de autorización
 
@@ -385,10 +411,10 @@ una solicitud, repartidos entre dos generaciones del sistema:
 | `adjunto` | `Documentación Adicional` (novedades) |
 | `heredado` | `Archivo_Generado` / `Archivo` + `Documento` |
 
-Las S3 keys se sirven vía `/api/firmas/{key}?redirect=1` (URL firmada fresca en cada
-visita). ⚠️ Las URLs de campos Attachment las genera Airtable y **expiran en 2 horas**:
-la lista se reconstruye en cada carga del histórico, pero una pestaña abierta mucho
-tiempo puede quedar con enlaces vencidos.
+Los archivos de S3 se sirven vía `/api/documentos/{tipo}/{recordId}/{clase}` — nunca
+por su S3 key. ⚠️ Las URLs de campos Attachment las genera Airtable y **expiran en
+2 horas**: la lista se reconstruye en cada carga del histórico, pero una pestaña
+abierta mucho tiempo puede quedar con enlaces vencidos.
 
 ⚠️ **Tipos de fecha en Airtable** — `Fecha_Firma_Autorizador` y `Fecha_Autorizacion`
 son `date` (sin hora): rechazan un ISO con hora. `Fecha_Firma_Trabajador` y
