@@ -1,0 +1,216 @@
+"use client";
+
+/**
+ * Aviso en la lista de solicitudes del colaborador: Gestión del Ser aprobó un
+ * permiso como compensatorio pero dejó sin definir cómo se repone el tiempo.
+ * Mientras el plan esté vacío, el permiso aparece aquí hasta que lo elija.
+ */
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PlanCompensacion, DATOS_PLAN_VACIOS, type DatosPlan } from "./PlanCompensacion";
+import { MODULOS, formatFecha } from "./ui";
+import { PLAN_RETO, PLAN_SABADO, esSabado, generarDiasCompensacion } from "@/lib/compensacion";
+
+export interface PermisoSinPlan {
+  id: string;
+  tipo: string;
+  fecha: string;
+  horasTotal: number;
+}
+
+interface Props {
+  permisos: PermisoSinPlan[];
+  apiBasePath?: string;
+}
+
+const COLOR = MODULOS.permiso.color;
+
+export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState<PermisoSinPlan | null>(null);
+  const [plan, setPlan] = useState("");
+  const [datos, setDatos] = useState<DatosPlan>(DATOS_PLAN_VACIOS);
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  if (permisos.length === 0) return null;
+
+  function abrir(permiso: PermisoSinPlan) {
+    setAbierto(permiso);
+    setPlan("");
+    setDatos(DATOS_PLAN_VACIOS);
+    setError("");
+  }
+
+  async function guardar() {
+    if (!abierto) return;
+
+    if (!plan) {
+      setError("Elige con cuál de los tres planes vas a reponer el tiempo.");
+      return;
+    }
+    if (plan === PLAN_SABADO && datos.fechas.some((f) => f && !esSabado(f))) {
+      setError("Las fechas deben caer en sábado.");
+      return;
+    }
+    if (plan === PLAN_RETO && !datos.reto.trim()) {
+      setError("Describe en qué consiste el reto.");
+      return;
+    }
+
+    const dias = generarDiasCompensacion(plan, {
+      horasTotal: abierto.horasTotal,
+      fechas: datos.fechas,
+      desde: datos.desde,
+      fechaLimite: datos.fechaLimite,
+      reto: datos.reto,
+    });
+    if (dias.length === 0) {
+      setError("Completa las fechas del plan.");
+      return;
+    }
+
+    setError("");
+    setGuardando(true);
+
+    try {
+      const res = await fetch(`${apiBasePath}/api/solicitudes/permiso/compensacion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: abierto.id,
+          plan,
+          fechas: datos.fechas,
+          desde: datos.desde,
+          fechaLimite: datos.fechaLimite,
+          reto: datos.reto,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error ?? "No se pudo guardar el plan.");
+        return;
+      }
+
+      setAbierto(null);
+      router.refresh();
+    } catch {
+      setError("Error de conexión. Intenta de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="mb-8 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 print:hidden">
+        <div className="flex items-start gap-3 px-5 py-4 sm:px-6">
+          <svg
+            className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.994-1.5-3.86 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+            />
+          </svg>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-900">
+              {permisos.length === 1
+                ? "Falta definir cómo repones un permiso"
+                : `Falta definir cómo repones ${permisos.length} permisos`}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-800/80">
+              Estos permisos se aprobaron como compensatorios. Elige con cuál plan vas a
+              reponer el tiempo.
+            </p>
+          </div>
+        </div>
+
+        <ul className="divide-y divide-amber-200/70 border-t border-amber-200">
+          {permisos.map((p) => (
+            <li
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-6"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-amber-900">{p.tipo}</p>
+                <p className="mt-0.5 text-xs text-amber-800/70">
+                  {formatFecha(p.fecha)} · {p.horasTotal} h por reponer
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => abrir(p)}
+                className="rounded-xl px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110"
+                style={{ background: COLOR }}
+              >
+                Definir cómo repongo
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-gray-100 px-6 py-5">
+              <h2 className="text-lg font-semibold tracking-tight text-gray-800">
+                ¿Cómo vas a reponer el tiempo?
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {abierto.tipo} del {formatFecha(abierto.fecha)} · {abierto.horasTotal} h por
+                reponer
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <PlanCompensacion
+                plan={plan}
+                onPlanChange={setPlan}
+                datos={datos}
+                onDatosChange={setDatos}
+                horasTotal={abierto.horasTotal}
+                color={COLOR}
+                disabled={guardando}
+              />
+
+              {error && (
+                <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setAbierto(null)}
+                disabled={guardando}
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200/70 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={guardar}
+                disabled={guardando || !plan}
+                className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300"
+                style={plan && !guardando ? { background: COLOR } : undefined}
+              >
+                {guardando ? "Guardando..." : "Confirmar plan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

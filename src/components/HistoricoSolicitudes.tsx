@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { FIELDS, FK_ID_CORE, FIELDS_AUTORIZACION } from "@/lib/airtable-schema";
+import { parseDiasCompensacion } from "@/lib/compensacion";
 
 type Categoria = "permisos" | "vacaciones" | "novedades";
 type Tab = "todas" | Categoria | "documentos";
@@ -178,6 +179,16 @@ function normalizar(categoria: Categoria, r: Registro): Fila {
         { etiqueta: "Horas", valor: horas || "—" },
         { etiqueta: "Remunerado", valor: f[FIELDS.PERMISO.REMUNERADO] ? "Sí" : "No" },
         { etiqueta: "Compensatorio", valor: f[FIELDS.PERMISO.COMPENSADO] ? "Sí" : "No" },
+        ...(f[FIELDS.PERMISO.COMPENSADO]
+          ? [
+              {
+                etiqueta: "Plan de reposición",
+                valor:
+                  txt(f[FIELDS.PERMISO.PLAN_COMPENSACION]) ||
+                  "Falta definir cómo se repone",
+              },
+            ]
+          : []),
         ...diasCompensacion(f[FIELDS.PERMISO.DIAS_COMPENSACION]),
       ],
     };
@@ -224,17 +235,10 @@ function normalizar(categoria: Categoria, r: Registro): Fila {
 
 /** Los días de compensación se guardan como JSON en un campo de texto largo. */
 function diasCompensacion(valor: unknown): { etiqueta: string; valor: string }[] {
-  if (typeof valor !== "string" || !valor.trim()) return [];
-  try {
-    const dias = JSON.parse(valor) as { fecha: string; horas: number; descripcion?: string }[];
-    if (!Array.isArray(dias) || dias.length === 0) return [];
-    return dias.map((d, i) => ({
-      etiqueta: `Compensa ${i + 1}`,
-      valor: `${fmtFecha(d.fecha)} · ${d.horas} h${d.descripcion ? ` · ${d.descripcion}` : ""}`,
-    }));
-  } catch {
-    return [];
-  }
+  return parseDiasCompensacion(valor).map((d, i) => ({
+    etiqueta: `Compensa ${i + 1}`,
+    valor: `${fmtFecha(d.fecha)} · ${d.horas} h${d.descripcion ? ` · ${d.descripcion}` : ""}`,
+  }));
 }
 
 export default function HistoricoSolicitudes() {

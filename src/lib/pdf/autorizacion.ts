@@ -38,6 +38,8 @@ export interface AutorizacionPdfParams {
   /** Solo permisos: condiciones con las que se concedió. */
   remunerado?: boolean;
   compensado?: boolean;
+  /** Nombre del plan con el que el trabajador repone el tiempo. */
+  planCompensacion?: string;
   diasCompensacion?: DiaCompensacionPdf[];
   autorizador: { nombre: string; cedula: string; cargo: string };
   /** Fecha de la autorización, ISO "YYYY-MM-DD". */
@@ -409,6 +411,23 @@ export async function generarPdfAutorizacion(
       fonts,
     );
     cursor.y -= 40;
+
+    // El plan es el compromiso concreto de reposición: va antes del detalle de
+    // los días, que no es más que el plan puesto en fechas. Quien autoriza puede
+    // dejarlo sin definir, y entonces lo elige el propio colaborador.
+    if (params.compensado) {
+      cursor.espacio(40);
+      campo(
+        cursor.page,
+        MARGEN,
+        cursor.y,
+        "Plan de reposición",
+        params.planCompensacion?.trim() ||
+          "Por definir por el colaborador en su lista de solicitudes",
+        fonts,
+      );
+      cursor.y -= 40;
+    }
 
     const dias = params.diasCompensacion ?? [];
     if (params.compensado && dias.length > 0) {

@@ -79,6 +79,10 @@ export const FIELDS = {
     FIRMANTE_APROB_CEDULA:  "Firmante_Aprobador_Cedula",
     FIRMANTE_APROB_CARGO:   "Firmante_Aprobador_Cargo",
     DIAS_COMPENSACION:      "Dias_Compensacion_Detalle",
+    // Plan con el que se repone el tiempo. Lo elige Gestión del Ser al autorizar;
+    // si lo deja vacío, el colaborador escoge desde su lista de solicitudes.
+    // Vacío + COMPENSADO = true es la señal de "falta definir cómo repone".
+    PLAN_COMPENSACION:      "Plan_Compensacion",
   },
   VACACIONES: {
     NOMBRE:              "Nombre",
@@ -133,6 +137,13 @@ export const ESTADOS_ACTIVIDAD = {
 
 // ── Estado inicial de nuevas solicitudes ──────────────────────────────────────
 export const ESTADO_PENDIENTE = "Pendiente";
+
+/**
+ * Estados con los que una solicitud queda aprobada. Son tres porque cada tabla
+ * nombra distinto la misma decisión: permisos "Concedido", vacaciones
+ * "Aprobado" y los registros heredados "Autorizado".
+ */
+export const ESTADOS_APROBADOS = ["Concedido", "Aprobado", "Autorizado"] as const;
 
 // ── Campos del flujo de autorización (comunes a las 3 tablas de solicitudes) ──
 export const FIELDS_AUTORIZACION = {

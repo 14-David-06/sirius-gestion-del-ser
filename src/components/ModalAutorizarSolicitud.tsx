@@ -1,7 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { FirmaCanvas } from "@sirius/solicitudes";
+import {
+  FirmaCanvas,
+  PlanCompensacion,
+  SelectorFecha,
+  DATOS_PLAN_VACIOS,
+  type DatosPlan,
+} from "@sirius/solicitudes";
+import { FIELDS } from "@/lib/airtable-schema";
+import {
+  PLAN_RETO,
+  PLAN_SABADO,
+  diasEntre,
+  esSabado,
+  generarDiasCompensacion,
+  horasAReponer,
+  type DiaCompensacion,
+} from "@/lib/compensacion";
 
 /** Valores tal como los devuelve la API de Airtable. */
 export type CampoAirtable = string | number | boolean | string[] | undefined | null;
@@ -20,12 +36,6 @@ interface Props {
   solicitud: Solicitud;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-interface DiaCompensacion {
-  fecha: string;
-  horas: number;
-  descripcion: string;
 }
 
 const TITULOS = {
@@ -50,6 +60,11 @@ function fmtFecha(valor: CampoAirtable): string {
   return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Campo de fecha de Airtable a ISO "YYYY-MM-DD" — los dateTime traen la hora. */
+function iso(valor: CampoAirtable): string {
+  return typeof valor === "string" ? valor.slice(0, 10) : "";
+}
+
 function txt(valor: CampoAirtable): string {
   if (valor === undefined || valor === null || valor === "") return "—";
   return String(valor);
@@ -61,9 +76,22 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const f = solicitud.fields;
+
+  // Horas que el trabajador debe reponer si el permiso se declara compensatorio:
+  // las del permiso por horas, o una jornada completa por cada día pedido.
+  const horasTotal = horasAReponer(
+    f[FIELDS.PERMISO.HORAS],
+    diasEntre(iso(f[FIELDS.PERMISO.FECHA_INICIO]), iso(f[FIELDS.PERMISO.FECHA_FIN]))
+  );
+
   // Estados específicos para permisos
-  const [remunerado, setRemunerado] = useState(Boolean(solicitud.fields["Remunerado"]));
-  const [compensado, setCompensado] = useState(Boolean(solicitud.fields["Compensado"]));
+  const [remunerado, setRemunerado] = useState(Boolean(f[FIELDS.PERMISO.REMUNERADO]));
+  const [compensado, setCompensado] = useState(Boolean(f[FIELDS.PERMISO.COMPENSADO]));
+  // El plan es opcional: si se deja sin elegir, el colaborador escoge cómo repone
+  // desde su lista de solicitudes.
+  const [plan, setPlan] = useState("");
+  const [datosPlan, setDatosPlan] = useState<DatosPlan>(DATOS_PLAN_VACIOS);
   const [diasCompensacion, setDiasCompensacion] = useState<DiaCompensacion[]>([
     { fecha: "", horas: 0, descripcion: "" },
   ]);
@@ -71,7 +99,30 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
   // Firma digital
   const [firmaBlob, setFirmaBlob] = useState<Blob | null>(null);
 
-  const f = solicitud.fields;
+  /**
+   * El plan es el que arma la agenda: al elegirlo (o cambiar sus fechas) se
+   * regeneran los días. Quedan editables debajo para ajustes puntuales.
+   */
+  function cambiarPlan(nuevo: string) {
+    setPlan(nuevo);
+    setDiasCompensacion(regenerar(nuevo, datosPlan));
+  }
+
+  function cambiarDatosPlan(nuevos: DatosPlan) {
+    setDatosPlan(nuevos);
+    setDiasCompensacion(regenerar(plan, nuevos));
+  }
+
+  function regenerar(planId: string, datos: DatosPlan): DiaCompensacion[] {
+    const dias = generarDiasCompensacion(planId, {
+      horasTotal,
+      fechas: datos.fechas,
+      desde: datos.desde,
+      fechaLimite: datos.fechaLimite,
+      reto: datos.reto,
+    });
+    return dias.length > 0 ? dias : [{ fecha: "", horas: 0, descripcion: "" }];
+  }
 
   function agregarDiaCompensacion() {
     setDiasCompensacion([...diasCompensacion, { fecha: "", horas: 0, descripcion: "" }]);
@@ -107,11 +158,20 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
       return;
     }
 
-    // Validar campos específicos de permiso
-    if (tipo === "permiso" && accion === "aprobar" && compensado) {
+    // Validar campos específicos de permiso. El plan es opcional: sin plan el
+    // permiso queda marcado como compensatorio y el colaborador elige después.
+    if (tipo === "permiso" && accion === "aprobar" && compensado && plan) {
+      if (plan === PLAN_SABADO && datosPlan.fechas.some((d) => d && !esSabado(d))) {
+        setError("Las fechas del plan de sábado deben caer en sábado");
+        return;
+      }
+      if (plan === PLAN_RETO && !datosPlan.reto.trim()) {
+        setError("Describa en qué consiste el reto");
+        return;
+      }
       const diasValidos = diasCompensacion.filter((d) => d.fecha && d.horas > 0);
       if (diasValidos.length === 0) {
-        setError("Debe agregar al menos un día de compensación con fecha y horas");
+        setError("Complete las fechas del plan de reposición");
         return;
       }
     }
@@ -137,7 +197,8 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
         body.remunerado = remunerado;
         body.compensado = compensado;
 
-        if (compensado) {
+        if (compensado && plan) {
+          body.planCompensacion = plan;
           body.diasCompensacion = diasCompensacion.filter((d) => d.fecha && d.horas > 0);
         }
       }
@@ -277,6 +338,11 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
                   setRemunerado={setRemunerado}
                   compensado={compensado}
                   setCompensado={setCompensado}
+                  plan={plan}
+                  setPlan={cambiarPlan}
+                  datosPlan={datosPlan}
+                  setDatosPlan={cambiarDatosPlan}
+                  horasTotal={horasTotal}
                   diasCompensacion={diasCompensacion}
                   agregarDia={agregarDiaCompensacion}
                   eliminarDia={eliminarDiaCompensacion}
@@ -531,6 +597,11 @@ function CamposPermiso({
   setRemunerado,
   compensado,
   setCompensado,
+  plan,
+  setPlan,
+  datosPlan,
+  setDatosPlan,
+  horasTotal,
   diasCompensacion,
   agregarDia,
   eliminarDia,
@@ -540,6 +611,11 @@ function CamposPermiso({
   setRemunerado: (v: boolean) => void;
   compensado: boolean;
   setCompensado: (v: boolean) => void;
+  plan: string;
+  setPlan: (v: string) => void;
+  datosPlan: DatosPlan;
+  setDatosPlan: (v: DatosPlan) => void;
+  horasTotal: number;
   diasCompensacion: DiaCompensacion[];
   agregarDia: () => void;
   eliminarDia: (i: number) => void;
@@ -564,28 +640,49 @@ function CamposPermiso({
 
       {compensado && (
         <div className="rounded-xl border border-slate-200 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-slate-900">Días de compensación</h4>
-            <button
-              type="button"
-              onClick={agregarDia}
-              className="rounded-lg px-2 py-1 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
-            >
-              + Agregar día
-            </button>
-          </div>
+          <h4 className="text-sm font-semibold text-slate-900">
+            ¿Cómo repone las {horasTotal} h?{" "}
+            <span className="font-normal text-slate-400">(opcional)</span>
+          </h4>
+          <p className="mt-1 mb-3 text-xs text-slate-500">
+            Si no elige un plan, el colaborador escogerá cómo repone desde su lista de
+            solicitudes y quedará avisado allí.
+          </p>
+          <PlanCompensacion
+            plan={plan}
+            onPlanChange={setPlan}
+            datos={datosPlan}
+            onDatosChange={setDatosPlan}
+            horasTotal={horasTotal}
+          />
 
-          <div className="space-y-3">
-            {diasCompensacion.map((dia, index) => (
+          {/* La agenda concreta solo tiene sentido con un plan elegido */}
+          {plan && (
+            <>
+              <div className="mt-4 mb-3 flex items-center justify-between border-t border-slate-100 pt-4">
+                <h4 className="text-sm font-semibold text-slate-900">Días de compensación</h4>
+                <button
+                  type="button"
+                  onClick={agregarDia}
+                  className="rounded-lg px-2 py-1 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                >
+                  + Agregar día
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {diasCompensacion.map((dia, index) => (
               <div key={index} className="rounded-lg bg-slate-50 p-3">
                 <div className="flex items-end gap-3">
-                  <div className="w-40">
+                  <div className="w-48">
                     <label className="mb-1 block text-xs text-slate-500">Fecha</label>
-                    <input
-                      type="date"
-                      value={dia.fecha}
-                      onChange={(e) => actualizarDia(index, "fecha", e.target.value)}
-                      className={inputCls}
+                    {/* Un día ajustado a mano puede caer en cualquier fecha: aquí
+                        el calendario no restringe días de la semana. */}
+                    <SelectorFecha
+                      valor={dia.fecha}
+                      onChange={(fecha) => actualizarDia(index, "fecha", fecha)}
+                      ariaLabel={`Fecha del día de compensación ${index + 1}`}
+                      permitirPasado
                     />
                   </div>
                   <div className="w-24">
@@ -628,9 +725,11 @@ function CamposPermiso({
                     className={inputCls}
                   />
                 </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -11,6 +11,11 @@ import { generarPdfAutorizacion, formatearFechaLarga } from "@/lib/pdf";
 import { subirAdjuntoAirtable } from "@/lib/airtable-attachments";
 import { obtenerEmpleadoPorRecordId } from "@/lib/empleados";
 import {
+  diasValidos as filtrarDiasValidos,
+  nombrePlan,
+  type DiaCompensacion,
+} from "@/lib/compensacion";
+import {
   TABLES,
   FIELDS,
   FIELDS_AUTORIZACION,
@@ -41,12 +46,6 @@ function fechaHoyBogota(): string {
   }).format(new Date());
 }
 
-interface DiaCompensacion {
-  fecha: string;
-  horas: number;
-  descripcion: string;
-}
-
 interface AutorizarBody {
   tabla: Tabla;
   recordId: string;
@@ -56,6 +55,8 @@ interface AutorizarBody {
   // Campos específicos para permisos
   remunerado?: boolean;
   compensado?: boolean;
+  /** Id del plan con el que el trabajador repone el tiempo (src/lib/compensacion.ts). */
+  planCompensacion?: string;
   diasCompensacion?: DiaCompensacion[];
 }
 
@@ -109,7 +110,17 @@ export async function POST(req: NextRequest) {
 
     // 2. Parsear body
     const body: AutorizarBody = await req.json();
-    const { tabla, recordId, accion, comentario, firmaBase64, remunerado, compensado, diasCompensacion } = body;
+    const {
+      tabla,
+      recordId,
+      accion,
+      comentario,
+      firmaBase64,
+      remunerado,
+      compensado,
+      planCompensacion,
+      diasCompensacion,
+    } = body;
 
     if (!tabla || !recordId || !accion) {
       return NextResponse.json(
@@ -141,6 +152,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // El plan de reposición es opcional para quien autoriza: si lo deja sin
+    // definir, el permiso queda compensatorio sin plan y el colaborador lo elige
+    // desde /api/solicitudes/permiso/compensacion. nombrePlan() devuelve "" si el
+    // plan no es uno de los tres, así que un valor inventado se descarta igual.
+    const planNombre = nombrePlan(planCompensacion);
 
     // 3. Obtener registro de la solicitud
     const tablaMap: Record<Tabla, string> = {
@@ -204,7 +221,7 @@ export async function POST(req: NextRequest) {
 
     // 8. Preparar campos de actualización
     const fechaAutorizacion = fechaHoyBogota();
-    const diasValidos = (diasCompensacion ?? []).filter((d) => d.fecha && d.horas > 0);
+    const diasValidos = filtrarDiasValidos(diasCompensacion);
 
     const fieldsUpdate: Record<string, unknown> = {
       [campoEstado]: nuevoEstado,
@@ -229,7 +246,10 @@ export async function POST(req: NextRequest) {
       if (compensado !== undefined) {
         fieldsUpdate[FIELDS.PERMISO.COMPENSADO] = compensado;
       }
-      if (compensado && diasValidos.length > 0) {
+      if (compensado && planNombre) {
+        fieldsUpdate[FIELDS.PERMISO.PLAN_COMPENSACION] = planNombre;
+      }
+      if (compensado && planNombre && diasValidos.length > 0) {
         // Serializar días de compensación como JSON
         fieldsUpdate[FIELDS.PERMISO.DIAS_COMPENSACION] = JSON.stringify(diasValidos);
         // El campo nativo de Airtable solo admite una fecha: se usa la primera
@@ -269,6 +289,7 @@ export async function POST(req: NextRequest) {
         comentario: comentario?.trim(),
         remunerado,
         compensado,
+        planCompensacion: planNombre,
         diasCompensacion: diasValidos,
         autorizador: {
           nombre: payload.nombre,

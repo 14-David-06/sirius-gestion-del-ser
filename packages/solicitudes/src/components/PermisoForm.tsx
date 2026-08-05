@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { TIPOS_PERMISO, TIPO_DIA_PACTO, TIPO_PERMISO_OTRO } from "../lib/constants";
 import { CalendarioPermiso } from "./CalendarioPermiso";
+import { SelectorFecha } from "./SelectorFecha";
 import { FirmaSection } from "./FirmaSection";
 import { VoiceNoteButton } from "./VoiceNoteButton";
 import {
@@ -93,6 +94,13 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
 
     if (modalidad === "dias" && fechasSeleccionadas.length === 0) {
       setError("Debes seleccionar al menos un día de permiso.");
+      return;
+    }
+
+    // Con el calendario ya no hay un `required` del navegador que lo cubra: sin
+    // esta comprobación el permiso saldría sin fecha de inicio.
+    if (modalidad === "horas" && fechasSeleccionadas.length === 0) {
+      setError("Debes seleccionar la fecha del permiso.");
       return;
     }
 
@@ -320,12 +328,13 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
             {tipo && !esDiaPacto && modalidad === "horas" && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Fecha del permiso *">
-                  <input
-                    type="date"
-                    value={fechasSeleccionadas[0] || ""}
-                    onChange={(e) => setFechasSeleccionadas([e.target.value])}
-                    required
-                    className={CLS}
+                  <SelectorFecha
+                    valor={fechasSeleccionadas[0] || ""}
+                    onChange={(fecha) => setFechasSeleccionadas(fecha ? [fecha] : [])}
+                    placeholder="Elegir el día"
+                    ariaLabel="Fecha del permiso"
+                    color={COLOR}
+                    excluirFestivos
                   />
                 </Field>
                 <Field label="Horas de permiso *" hint="máx. 4">

@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { VoiceNoteButton } from "./VoiceNoteButton";
 import { FirmaSection } from "./FirmaSection";
 import { CalendarioPermiso } from "./CalendarioPermiso";
+import { SelectorFecha } from "./SelectorFecha";
 import {
   DatosEmpleado,
   ErrorMsg,
@@ -152,12 +153,14 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
             </Field>
 
             <Field label="Fecha de reintegro" hint="opcional">
-              <input
-                type="date"
-                value={fechaReintegro}
-                min={fechaFin}
-                onChange={(e) => setFechaReintegro(e.target.value)}
-                className={CLS}
+              <SelectorFecha
+                valor={fechaReintegro}
+                onChange={setFechaReintegro}
+                placeholder="Elegir el día de reintegro"
+                ariaLabel="Fecha de reintegro"
+                color={COLOR}
+                // No se puede volver antes de terminar las vacaciones.
+                minimo={fechaFin}
               />
             </Field>
 

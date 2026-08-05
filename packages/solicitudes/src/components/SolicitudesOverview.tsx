@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { escapeAirtableValue } from "../lib/security";
-import { TABLES, FIELDS, FK_ID_CORE } from "../lib/schema";
+import { TABLES, FIELDS, FK_ID_CORE, ESTADOS_APROBADOS } from "../lib/schema";
 import {
   MODULOS,
   ModuloKey,
@@ -8,10 +8,13 @@ import {
   ICON_CHEVRON_RIGHT,
   formatFecha,
 } from "./ui";
+import { AvisoCompensacion, type PermisoSinPlan } from "./AvisoCompensacion";
+import { diasEntre, horasAReponer } from "@/lib/compensacion";
 
 interface Props {
   idCore: string;
   basePath?: string;
+  apiBasePath?: string;
 }
 
 type AirtableRecord = { id: string; fields: Record<string, unknown> };
@@ -29,10 +32,8 @@ const ESTADO_STYLE: Record<string, { bg: string; color: string; dot: string }> =
 
 const ESTADO_DEFAULT = { bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" };
 
-const ESTADOS_APROBADOS = ["Concedido", "Aprobado", "Autorizado"];
-
 function esEstadoAprobado(estado: string): boolean {
-  return ESTADOS_APROBADOS.includes(estado);
+  return (ESTADOS_APROBADOS as readonly string[]).includes(estado);
 }
 
 type Row = { modulo: ModuloKey; tipo: string; subtipo: string; fecha: string; estado: string };
@@ -95,6 +96,60 @@ async function fetchRecientes(idCore: string): Promise<Row[]> {
   return rows.sort((a, b) => (b.fecha > a.fecha ? 1 : -1)).slice(0, 10);
 }
 
+/**
+ * Permisos aprobados como compensatorios a los que Gestión del Ser no les definió
+ * el plan: el colaborador tiene que elegir cómo repone. Va en una consulta aparte
+ * de las 5 recientes porque un permiso puede quedar pendiente mucho tiempo.
+ *
+ * El estado aprobado es parte del filtro, no un detalle: quien decide si un
+ * permiso se repone es Gestión del Ser al autorizar. Mientras el permiso siga
+ * pendiente no hay nada que reponer todavía — y podría terminar rechazado.
+ *
+ * Tampoco basta con que el plan esté vacío: si el registro ya trae los días de
+ * compensación, la reposición quedó acordada aunque nadie nombrara un plan.
+ * Preguntarle al colaborador ahí lo haría rehacer un compromiso ya cerrado.
+ */
+async function fetchSinPlanCompensacion(idCore: string): Promise<PermisoSinPlan[]> {
+  const BASE = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
+  const KEY  = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
+
+  const aprobado = ESTADOS_APROBADOS.map(
+    (e) => `{${FIELDS.PERMISO.ESTADO}}='${escapeAirtableValue(e)}'`
+  ).join(", ");
+
+  const formula = encodeURIComponent(
+    `AND({${FK_ID_CORE}}='${escapeAirtableValue(idCore)}', ` +
+      `{${FIELDS.PERMISO.COMPENSADO}}, ` +
+      `OR(${aprobado}), ` +
+      `{${FIELDS.PERMISO.PLAN_COMPENSACION}}='', ` +
+      `{${FIELDS.PERMISO.DIAS_COMPENSACION}}='')`
+  );
+
+  try {
+    const res = await fetch(
+      `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLES.PERMISO)}?filterByFormula=${formula}&maxRecords=10`,
+      { headers: { Authorization: `Bearer ${KEY}` }, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    return ((data.records ?? []) as AirtableRecord[]).map((r) => {
+      const inicio = String(r.fields[FIELDS.PERMISO.FECHA_INICIO] ?? "").slice(0, 10);
+      const fin    = String(r.fields[FIELDS.PERMISO.FECHA_FIN] ?? "").slice(0, 10);
+      return {
+        id: r.id,
+        tipo: String(r.fields[FIELDS.PERMISO.TIPO] ?? "Permiso"),
+        fecha: inicio,
+        horasTotal: horasAReponer(r.fields[FIELDS.PERMISO.HORAS], diasEntre(inicio, fin)),
+      };
+    });
+  } catch (error) {
+    // El aviso es informativo: si Airtable falla, la página igual se muestra.
+    console.error("[SolicitudesOverview] compensaciones sin plan:", error);
+    return [];
+  }
+}
+
 /* ── Badge de estado ────────────────────────────────────────────────────── */
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -139,8 +194,15 @@ function Resumen({ rows }: { rows: Row[] }) {
 
 /* ── Página ─────────────────────────────────────────────────────────────── */
 
-export async function SolicitudesOverview({ idCore, basePath = "/dashboard/solicitudes" }: Props) {
-  const recientes = await fetchRecientes(idCore);
+export async function SolicitudesOverview({
+  idCore,
+  basePath = "/dashboard/solicitudes",
+  apiBasePath = "",
+}: Props) {
+  const [recientes, sinPlan] = await Promise.all([
+    fetchRecientes(idCore),
+    fetchSinPlanCompensacion(idCore),
+  ]);
 
   const acciones: { key: ModuloKey; label: string; href: string }[] = [
     { key: "permiso",    label: "Solicitar Permiso",    href: `${basePath}/permiso` },
@@ -157,6 +219,9 @@ export async function SolicitudesOverview({ idCore, basePath = "/dashboard/solic
           Gestiona tus permisos, vacaciones y novedades de nómina
         </p>
       </div>
+
+      {/* ── Aviso: permisos compensatorios sin plan de reposición ───────── */}
+      <AvisoCompensacion permisos={sinPlan} apiBasePath={apiBasePath} />
 
       {/* ── Banner con resumen ──────────────────────────────────────────── */}
       <div

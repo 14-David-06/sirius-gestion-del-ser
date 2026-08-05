@@ -151,8 +151,10 @@ Solicitudes de empleados. Reemplaza el sistema de HTML estáticos en S3.
 | `Horas Permiso` | singleLineText | Usuario (guardado como string) |
 | `Motivo_Permiso` | multilineText | Usuario |
 | `Remunerado` | checkbox | Usuario |
-| `Compensado` | checkbox | Usuario |
-| `Fecha de compensatorio` | date | Usuario (visible solo si Compensado=true) |
+| `Compensado` | checkbox | Gestión del Ser al autorizar |
+| `Fecha de compensatorio` | date | Auto — primer día del plan de reposición |
+| `Plan_Compensacion` | singleLineText | Gestión del Ser al autorizar, o el colaborador si quedó vacío |
+| `Dias_Compensacion_Detalle` | multilineText | Auto — JSON `[{fecha,horas,descripcion}]` del plan |
 | `Estado_Permiso` | singleSelect | Auto — `"Pendiente"` al crear |
 
 **Tabla: Solicitud_Vacaciones**
@@ -373,6 +375,45 @@ autorizaciones/{permiso|vacaciones|novedades}/{año}/{mes}/{idCore}_{recordId}_{
 
 Todo S3 key nuevo debe añadirse a `validateS3Key()` en `src/lib/s3/upload.ts`, o
 `/api/documentos` lo rechazará.
+
+### Planes de compensación de un permiso
+
+Cuando Gestión del Ser marca un permiso como **Compensatorio**, tiene que elegir
+con cuál de los tres planes lo repone el trabajador. `src/lib/compensacion.ts` es
+la fuente única: define `PLANES_COMPENSACION` y traduce cada plan a la lista de
+días `[{fecha, horas, descripcion}]` que ya consumían el PDF y el histórico.
+
+| Plan | `id` | Cómo se agenda |
+|------|------|----------------|
+| Sábado de 7:00 a. m. a 12:00 m. | `sabado` | Jornadas de 5 h en los sábados elegidos |
+| Una hora diaria hasta completar | `hora-diaria` | 1 h por día hábil (lun–vie) desde la fecha de inicio |
+| Cumplir con un reto | `reto` | Una entrada: el reto pactado y su fecha límite |
+
+Quien decide si un permiso se repone es **Gestión del Ser al autorizar**, nunca el
+trabajador al radicar. El formulario de permiso no pregunta nada de esto.
+
+1. **Al autorizar** (`ModalAutorizarSolicitud`), marcar *Compensatorio* abre el
+   selector de plan. Elegirlo es **opcional**: el plan genera la tabla de días,
+   que queda editable para ajustes.
+2. **Si lo deja sin elegir**, el permiso queda con `Compensado = true` y
+   `Plan_Compensacion` vacío. Esa combinación es la señal de "falta definir cómo
+   repone" y el PDF lo dice explícitamente.
+3. **El colaborador lo elige** desde `/dashboard/solicitudes`: `AvisoCompensacion`
+   muestra un banner ámbar con esos permisos y `POST /api/solicitudes/permiso/compensacion`
+   guarda el plan.
+
+Las horas a reponer se derivan del permiso: las horas pedidas si fue por horas, o
+`HORAS_JORNADA` (8 h) por cada día si fue por días. **El endpoint las recalcula del
+registro**, nunca las toma del cliente — si no, bastaría enviar media hora para
+saldar un día entero. Igual recalcula los días a partir del plan.
+
+Dos reglas del endpoint del colaborador, ambas por la misma razón de siempre — que
+tener sesión no es autorización:
+
+- Solo el dueño (`ID Personal Core` === `payload.idCore`) y solo si el permiso está
+  marcado como compensatorio. Al denegar responde **404, no 403**.
+- El plan se define **una sola vez**: si ya tiene valor responde **409**. Cambiarlo
+  sería rehacer un compromiso que ya quedó firmado en el documento de autorización.
 
 ### Documento oficial de autorización
 

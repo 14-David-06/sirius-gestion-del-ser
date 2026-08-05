@@ -42,6 +42,10 @@ export const FIELDS = {
     FECHA_AUTORIZACION:   "Fecha_Autorizacion",
     COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
     DIAS_COMPENSACION:    "Dias_Compensacion_Detalle",
+    // Plan con el que se repone el tiempo (ver src/lib/compensacion.ts). Vacío
+    // —y sin DIAS_COMPENSACION— con COMPENSADO = true significa que aún falta
+    // definir cómo repone el trabajador.
+    PLAN_COMPENSACION:      "Plan_Compensacion",
     URL_PDF:              "URL_PDF_Firmado",
     NOMBRE_ARCHIVO:       "Nombre_Archivo",
     HASH_DOCUMENTO:       "Hash_Documento",
@@ -89,4 +93,10 @@ export const FIELDS = {
 export const ESTADO_PENDIENTE = "Pendiente";
 /** Estado de un permiso aprobado (opción del singleSelect Estado_Permiso). */
 export const ESTADO_CONCEDIDO = "Concedido";
+/**
+ * Estados con los que una solicitud queda aprobada. Los tres conviven porque
+ * cada tabla nombra distinto la misma decisión (permisos "Concedido",
+ * vacaciones "Aprobado", registros antiguos "Autorizado").
+ */
+export const ESTADOS_APROBADOS = ["Concedido", "Aprobado", "Autorizado"] as const;
 export const PERIODO_ACTUAL = "2026-S2";

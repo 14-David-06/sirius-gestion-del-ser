@@ -22,6 +22,16 @@ interface Props {
   excluirDomingos?: boolean;
   /** Bloquea festivos colombianos. */
   excluirFestivos?: boolean;
+  /**
+   * Días de la semana elegibles (0 = domingo … 6 = sábado). Sin esta prop
+   * cualquier día sirve. La usan los planes de compensación: el de sábados solo
+   * admite [6] y el de una hora diaria solo días hábiles.
+   */
+  diasSemanaPermitidos?: number[];
+  /** Permite elegir días ya pasados — para agendar sobre permisos antiguos. */
+  permitirPasado?: boolean;
+  /** Primera fecha elegible en ISO "YYYY-MM-DD" — bloquea todo lo anterior. */
+  minimo?: string;
 }
 
 const NOMBRES_MESES = [
@@ -30,6 +40,10 @@ const NOMBRES_MESES = [
 ];
 
 const NOMBRES_DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+const NOMBRES_DIAS_LARGO = [
+  "domingos", "lunes", "martes", "miércoles", "jueves", "viernes", "sábados",
+];
 
 /** Convierte a "YYYY-MM-DD" en zona local — toISOString() desfasa el día. */
 function toISODate(anio: number, mes: number, dia: number): string {
@@ -56,6 +70,9 @@ export function CalendarioPermiso({
   color = MODULOS.permiso.color,
   excluirDomingos = false,
   excluirFestivos = false,
+  diasSemanaPermitidos,
+  permitirPasado = false,
+  minimo,
 }: Props) {
   const hoy = new Date();
   const [mesActual, setMesActual] = useState(hoy.getMonth());
@@ -94,11 +111,18 @@ export function CalendarioPermiso({
   }
 
   /** Motivo por el que una fecha no se puede elegir, o null si está disponible. */
-  function motivoNoDisponible(iso: string): "domingo" | "festivo" | null {
-    if (excluirDomingos && new Date(iso + "T12:00:00").getDay() === 0) return "domingo";
+  function motivoNoDisponible(iso: string): "domingo" | "festivo" | "dia-semana" | null {
+    const diaSemana = new Date(iso + "T12:00:00").getDay();
+    if (excluirDomingos && diaSemana === 0) return "domingo";
+    if (diasSemanaPermitidos && !diasSemanaPermitidos.includes(diaSemana)) return "dia-semana";
     if (excluirFestivos && esFestivo(iso)) return "festivo";
     return null;
   }
+
+  /** "sábados" · "lunes a viernes" — para explicar por qué el resto está bloqueado. */
+  const nombreDiasPermitidos = diasSemanaPermitidos
+    ? diasSemanaPermitidos.map((d) => NOMBRES_DIAS_LARGO[d]).join(", ")
+    : "";
 
   function toggleDia(fechaStr: string) {
     if (fechasSeleccionadas.includes(fechaStr)) {
@@ -163,6 +187,7 @@ export function CalendarioPermiso({
   }
 
   function esFechaPasada(dia: number): boolean {
+    if (permitirPasado) return false;
     const fecha = new Date(anioActual, mesActual, dia);
     fecha.setHours(0, 0, 0, 0);
     const hoyInicio = new Date();
@@ -247,7 +272,8 @@ export function CalendarioPermiso({
 
           const iso = toISODate(anioActual, mesActual, dia);
           const seleccionado = esFechaSeleccionada(dia);
-          const pasado = esFechaPasada(dia);
+          // Comparar ISO como texto basta: "YYYY-MM-DD" ordena igual que la fecha.
+          const pasado = esFechaPasada(dia) || (minimo ? iso < minimo : false);
           const noDisponible = motivoNoDisponible(iso);
           const bloqueado = pasado || !!noDisponible || (limiteAlcanzado && !seleccionado);
 
@@ -274,14 +300,18 @@ export function CalendarioPermiso({
                   ? `${dia} — festivo, no disponible`
                   : noDisponible === "domingo"
                     ? `${dia} — domingo, no disponible`
-                    : undefined
+                    : noDisponible === "dia-semana"
+                      ? `${dia} — solo se pueden elegir ${nombreDiasPermitidos}`
+                      : undefined
               }
               title={
                 noDisponible === "festivo"
                   ? "Festivo — no disponible"
                   : noDisponible === "domingo"
                     ? "Domingo — no disponible"
-                    : undefined
+                    : noDisponible === "dia-semana"
+                      ? `Solo se pueden elegir ${nombreDiasPermitidos}`
+                      : undefined
               }
               className={`relative flex aspect-square items-center justify-center text-sm font-medium transition-all ${
                 seleccionado && !esExtremo ? "rounded-none" : "rounded-lg"
@@ -312,7 +342,7 @@ export function CalendarioPermiso({
       </div>
 
       {/* Leyenda de días no disponibles */}
-      {(excluirDomingos || excluirFestivos) && (
+      {(excluirDomingos || excluirFestivos || diasSemanaPermitidos) && (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-gray-100 ring-1 ring-gray-200" />
@@ -325,11 +355,13 @@ export function CalendarioPermiso({
             </span>
           )}
           <span className="text-gray-400">
-            {excluirDomingos && excluirFestivos
-              ? "Los domingos y festivos no cuentan como días de vacaciones."
-              : excluirDomingos
-                ? "Los domingos no están disponibles."
-                : "Los festivos no están disponibles."}
+            {diasSemanaPermitidos
+              ? `Solo se pueden elegir ${nombreDiasPermitidos}.`
+              : excluirDomingos && excluirFestivos
+                ? "Los domingos y festivos no cuentan como días de vacaciones."
+                : excluirDomingos
+                  ? "Los domingos no están disponibles."
+                  : "Los festivos no están disponibles."}
           </span>
         </div>
       )}
