@@ -23,6 +23,9 @@ export const HORAS_JORNADA = 8;
 /** Tope de días hábiles del plan de una hora diaria — evita un bucle infinito. */
 const MAX_DIAS_HABILES = 60;
 
+/** Hora a la que empieza la jornada de compensación de los sábados. */
+const INICIO_SABADO = 7;
+
 export const PLANES_COMPENSACION = [
   {
     id: "sabado",
@@ -93,6 +96,36 @@ function redondear(horas: number): number {
   return Math.round(horas * 2) / 2;
 }
 
+/**
+ * Hora del día en formato colombiano: 7 → "7:00 a. m.", 12 → "12:00 m.",
+ * 13.5 → "1:30 p. m.". Acepta medias horas porque las horas se pactan así.
+ */
+export function formatearHora(horaDecimal: number): string {
+  const total = Math.round(horaDecimal * 60);
+  const hora24 = Math.floor(total / 60);
+  const minutos = String(total % 60).padStart(2, "0");
+
+  if (hora24 === 12 && minutos === "00") return "12:00 m.";
+  const sufijo = hora24 < 12 ? "a. m." : "p. m.";
+  const hora12 = hora24 % 12 === 0 ? 12 : hora24 % 12;
+  return `${hora12}:${minutos} ${sufijo}`;
+}
+
+/**
+ * Descripción de una jornada de sábado según las horas que cubre.
+ *
+ * Un sábado parcial no puede anunciar el horario completo: si el trabajador solo
+ * repone 3 h, el documento debe decir "de 7:00 a. m. a 10:00 a. m." y no la
+ * jornada de 5 h, porque es el compromiso que queda firmado.
+ */
+export function descripcionJornadaSabado(horas: number): string {
+  const jornada = planCompensacion(PLAN_SABADO)!.horasJornada;
+  const efectivas = Math.min(Math.max(redondear(horas), 0), jornada);
+  // Sin punto final: `formatearHora` ya lo trae en "a. m." / "m.".
+  const fin = formatearHora(INICIO_SABADO + efectivas);
+  return `Jornada de compensación: sábado de ${formatearHora(INICIO_SABADO)} a ${fin}`;
+}
+
 export function esSabado(iso: string): boolean {
   const d = aFecha(iso);
   return d ? d.getDay() === 6 : false;
@@ -117,6 +150,35 @@ export function horasAReponer(horas: unknown, diasCalendario: number): number {
   return Math.max(1, diasCalendario) * HORAS_JORNADA;
 }
 
+/**
+ * Duración del permiso en una sola frase, para el documento oficial.
+ *
+ * El campo `Horas Permiso` viene vacío cuando el permiso se pidió por días, y un
+ * "—" en el documento se lee como dato faltante: el lector no puede saber de
+ * dónde salen las horas que después aparecen en la tabla de compensación. Esta
+ * línea las explica usando el mismo cálculo que las genera (`horasAReponer`), de
+ * modo que ambas cifras nunca puedan discrepar.
+ */
+export function descripcionDuracionPermiso(
+  horas: unknown,
+  fechaInicio: string,
+  fechaFin?: string | null,
+): string {
+  const pedidas = Number(typeof horas === "string" ? horas.trim().replace(",", ".") : horas);
+  if (Number.isFinite(pedidas) && pedidas > 0) {
+    const n = redondear(pedidas);
+    return `${n} ${n === 1 ? "hora" : "horas"} — permiso por horas`;
+  }
+
+  if (!aFecha(fechaInicio)) return "—";
+
+  const dias = diasEntre(fechaInicio, fechaFin);
+  const total = horasAReponer(horas, dias);
+  return dias === 1
+    ? `1 día — jornada completa (${total} h)`
+    : `${dias} días — jornadas completas (${total} h)`;
+}
+
 /** Cuántos sábados hacen falta para cubrir las horas del permiso. */
 export function sabadosNecesarios(horasTotal: number): number {
   const jornada = planCompensacion(PLAN_SABADO)!.horasJornada;
@@ -136,11 +198,7 @@ export function diasPlanSabado(fechas: string[], horasTotal: number): DiaCompens
     // en 0 h y se descartan al guardar: nadie repone más de lo que pidió.
     const horas = restante > 0 ? Math.min(jornada, redondear(restante)) : 0;
     restante -= horas;
-    return {
-      fecha,
-      horas,
-      descripcion: "Jornada de compensación: sábado de 7:00 a. m. a 12:00 m.",
-    };
+    return { fecha, horas, descripcion: descripcionJornadaSabado(horas) };
   });
 }
 

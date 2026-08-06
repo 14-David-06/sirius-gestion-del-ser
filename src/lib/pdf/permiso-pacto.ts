@@ -7,6 +7,7 @@
  */
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { LOGO_PROPORCION, LOGO_SIRIUS_BASE64 } from "./logo";
 
 export interface PermisoPactoPdfParams {
   /** ID del registro en Solicitud_Permiso (recXXX) — sirve de folio del documento. */
@@ -35,6 +36,7 @@ const GRIS_LINEA = rgb(0.88, 0.9, 0.93);
 const MARGEN = 56;
 const ANCHO = 595.28; // A4 en puntos
 const ALTO = 841.89;
+const LOGO_ALTO = 26; // alto del logo en el encabezado
 
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -117,6 +119,20 @@ export async function generarPdfPermisoPacto(
   page.drawRectangle({ x: 0, y: ALTO - 6, width: ANCHO, height: 6, color: VERDE });
 
   let y = ALTO - MARGEN - 10;
+
+  // Mismo encabezado que el documento de autorización: los dos son documentos
+  // oficiales y deben identificarse igual. Un logo ilegible no lo impide.
+  try {
+    const logo = await doc.embedPng(LOGO_SIRIUS_BASE64);
+    page.drawImage(logo, {
+      x: MARGEN,
+      y: y + 6,
+      height: LOGO_ALTO,
+      width: LOGO_ALTO * LOGO_PROPORCION,
+    });
+  } catch (error) {
+    console.error("[pdf dia-pacto] No se pudo incrustar el logo:", error);
+  }
 
   page.drawText("SIRIUS REGENERATIVE SOLUTIONS", {
     x: MARGEN,

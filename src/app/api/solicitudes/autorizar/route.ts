@@ -7,7 +7,9 @@ import {
   uploadPdfAutorizacion,
   descargarObjetoS3,
 } from "@/lib/s3";
-import { generarPdfAutorizacion, formatearFechaLarga } from "@/lib/pdf";
+import { generarPdfAutorizacion } from "@/lib/pdf";
+import { detallesSolicitud } from "@/lib/documento-autorizacion";
+import { fechaHoyBogota } from "@/lib/fecha-bogota";
 import { subirAdjuntoAirtable } from "@/lib/airtable-attachments";
 import { obtenerEmpleadoPorRecordId } from "@/lib/empleados";
 import {
@@ -32,20 +34,6 @@ const API_KEY_NOVEDADES = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
  */
 type Tabla = "permiso" | "vacaciones";
 
-/**
- * Fecha actual en zona horaria de Colombia, formato YYYY-MM-DD.
- * `new Date().toISOString()` devuelve UTC: después de las 19:00 en Bogotá
- * daría el día siguiente.
- */
-function fechaHoyBogota(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 interface AutorizarBody {
   tabla: Tabla;
   recordId: string;
@@ -58,36 +46,6 @@ interface AutorizarBody {
   /** Id del plan con el que el trabajador repone el tiempo (src/lib/compensacion.ts). */
   planCompensacion?: string;
   diasCompensacion?: DiaCompensacion[];
-}
-
-const texto = (valor: unknown): string =>
-  valor === null || valor === undefined || valor === "" ? "—" : String(valor).trim();
-
-const fecha = (valor: unknown): string =>
-  typeof valor === "string" && valor ? formatearFechaLarga(valor.slice(0, 10)) : "—";
-
-/** Detalle del PDF según el tipo de solicitud. */
-function detallesSolicitud(
-  tabla: Tabla,
-  f: Record<string, unknown>,
-): { etiqueta: string; valor: string }[] {
-  if (tabla === "permiso") {
-    return [
-      { etiqueta: "Tipo de permiso", valor: texto(f[FIELDS.PERMISO.TIPO]) },
-      { etiqueta: "Horas solicitadas", valor: texto(f[FIELDS.PERMISO.HORAS]) },
-      { etiqueta: "Desde", valor: fecha(f[FIELDS.PERMISO.FECHA_INICIO]) },
-      { etiqueta: "Hasta", valor: fecha(f[FIELDS.PERMISO.FECHA_FIN] ?? f[FIELDS.PERMISO.FECHA_INICIO]) },
-      { etiqueta: "Fecha de solicitud", valor: fecha(f[FIELDS.PERMISO.FECHA_SOLICITUD]) },
-    ];
-  }
-
-  return [
-    { etiqueta: "Fecha de inicio", valor: fecha(f[FIELDS.VACACIONES.FECHA_INICIO]) },
-    { etiqueta: "Fecha de fin", valor: fecha(f[FIELDS.VACACIONES.FECHA_FIN]) },
-    { etiqueta: "Fecha de reintegro", valor: fecha(f[FIELDS.VACACIONES.FECHA_REINTEGRO]) },
-    { etiqueta: "Días de vacaciones", valor: texto(f[FIELDS.VACACIONES.DIAS]) },
-    { etiqueta: "Fecha de presentación", valor: fecha(f[FIELDS.VACACIONES.FECHA_PRESENTACION]) },
-  ];
 }
 
 /** S3 key de la firma del trabajador, si la solicitud la tiene. */

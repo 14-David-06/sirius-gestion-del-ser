@@ -4,6 +4,8 @@ import {
   PLAN_HORA_DIARIA,
   PLAN_RETO,
   PLAN_SABADO,
+  descripcionDuracionPermiso,
+  descripcionJornadaSabado,
   diasEntre,
   diasPlanHoraDiaria,
   diasPlanReto,
@@ -62,6 +64,29 @@ describe("plan 1 — sábados de 5 h", () => {
   it("reparte las horas en jornadas de 5 h", () => {
     const dias = diasPlanSabado(["2026-08-08", "2026-08-15"], 8);
     expect(dias.map((d) => d.horas)).toEqual([5, 3]);
+  });
+
+  it("la descripción de cada sábado dice su horario real, no el de la jornada completa", () => {
+    const dias = diasPlanSabado(["2026-08-08", "2026-08-15"], 8);
+    expect(dias[0].descripcion).toBe(
+      "Jornada de compensación: sábado de 7:00 a. m. a 12:00 m.",
+    );
+    // El segundo sábado solo repone 3 h: no puede anunciar las 5 h completas.
+    expect(dias[1].descripcion).toBe(
+      "Jornada de compensación: sábado de 7:00 a. m. a 10:00 a. m.",
+    );
+  });
+
+  it("descripcionJornadaSabado maneja medias horas y topa en la jornada completa", () => {
+    expect(descripcionJornadaSabado(3.5)).toBe(
+      "Jornada de compensación: sábado de 7:00 a. m. a 10:30 a. m.",
+    );
+    expect(descripcionJornadaSabado(5)).toBe(
+      "Jornada de compensación: sábado de 7:00 a. m. a 12:00 m.",
+    );
+    expect(descripcionJornadaSabado(9)).toBe(
+      "Jornada de compensación: sábado de 7:00 a. m. a 12:00 m.",
+    );
   });
 
   it("deja en 0 h los sábados sobrantes para que se descarten al guardar", () => {
@@ -178,5 +203,47 @@ describe("parseDiasCompensacion", () => {
       { fecha: "2026-08-15", horas: 5, descripcion: "ok" },
     ]);
     expect(parseDiasCompensacion(json)).toHaveLength(1);
+  });
+});
+
+describe("descripcionDuracionPermiso", () => {
+  it("explica un permiso de un día con las horas que después se reponen", () => {
+    expect(descripcionDuracionPermiso("", "2026-08-24", "2026-08-24")).toBe(
+      "1 día — jornada completa (8 h)",
+    );
+  });
+
+  it("acumula las jornadas de un permiso de varios días", () => {
+    expect(descripcionDuracionPermiso(null, "2026-08-24", "2026-08-26")).toBe(
+      "3 días — jornadas completas (24 h)",
+    );
+  });
+
+  it("trata un permiso sin fecha fin como de un solo día", () => {
+    expect(descripcionDuracionPermiso("", "2026-08-24", null)).toBe(
+      "1 día — jornada completa (8 h)",
+    );
+  });
+
+  it("respeta las horas cuando el permiso se pidió por horas", () => {
+    expect(descripcionDuracionPermiso("4", "2026-08-24", "2026-08-24")).toBe(
+      "4 horas — permiso por horas",
+    );
+    expect(descripcionDuracionPermiso("1", "2026-08-24", null)).toBe(
+      "1 hora — permiso por horas",
+    );
+    expect(descripcionDuracionPermiso("2,5", "2026-08-24", null)).toBe(
+      "2.5 horas — permiso por horas",
+    );
+  });
+
+  it("las horas del permiso coinciden con las que se reparten en la compensación", () => {
+    const dias = diasPlanSabado(["2026-08-29", "2026-09-05"], horasAReponer("", 1));
+    const total = dias.reduce((suma, d) => suma + d.horas, 0);
+    expect(descripcionDuracionPermiso("", "2026-08-24", "2026-08-24")).toContain(`${total} h`);
+  });
+
+  it("devuelve — si no hay fecha de inicio", () => {
+    expect(descripcionDuracionPermiso("", "", null)).toBe("—");
   });
 });

@@ -63,11 +63,44 @@ Por eso las novedades **no** aparecen en `/api/solicitudes/pendientes`, ni en
 `DashboardAutorizaciones`, ni en `ModalAutorizarSolicitud`; `/api/solicitudes/autorizar`
 devuelve 400 si se le pasa `tabla: "novedades"`. Sí aparecen en el **histórico**,
 que es una vista de consulta.
-| Asistencia | `/dashboard/asistencia` | ❌ Pendiente |
+| Asistencia | `/dashboard/asistencia` + `/api/asistencia` | ✅ |
 | Contratos | `/dashboard/contratos` | ❌ Pendiente |
 | Documentos | `/dashboard/documentos` | ❌ Pendiente |
 | Horarios | `/dashboard/horarios` | ❌ Pendiente |
 | Asistente IA | `/dashboard/asistente` | ❌ Pendiente |
+
+## Módulo de Asistencia
+
+`/dashboard/asistencia` tiene **un solo botón**. El colaborador no elige si marca
+entrada o salida: `siguienteTipo()` lo deduce de su última marcación del día
+(entrada → sigue salida; cualquier otro caso → entrada). Quitar esa decisión es lo
+que hace el módulo usable sin explicación previa, y de paso impide registrar dos
+entradas seguidas por equivocación.
+
+| Pieza | Archivo |
+|-------|---------|
+| Lógica pura (fechas Bogotá, emparejar entrada/salida, totales) | `src/lib/asistencia.ts` + tests |
+| Endpoint `GET`/`POST` | `src/app/api/asistencia/route.ts` |
+| UI | `src/components/MarcacionAsistencia.tsx` |
+| Tabla Airtable | `Asistencia Personal` (`tblHxTE3XOlfAo0KA`), base Novedades Nómina |
+
+- `GET /api/asistencia?mes=YYYY-MM` → estado de hoy + días del mes con horas.
+- `POST /api/asistencia` → registra la marcación que toca. Ignora una segunda
+  pulsación dentro de **60 segundos** (409): un doble clic no debe abrir y cerrar
+  la jornada en el mismo minuto.
+- Las horas se calculan emparejando entradas con salidas. Una entrada repetida no
+  reinicia el conteo y una salida suelta se ignora: **nadie pierde horas por haber
+  pulsado dos veces**.
+
+⚠️ **El campo primario de la tabla se llama `﻿Empleado_RecordID`**, con un BOM
+(U+FEFF) que dejó la importación por CSV. Sin ese carácter Airtable responde
+`UNKNOWN_FIELD_NAME`. Por eso está escrito escapado en `FIELDS.ASISTENCIA` — es
+invisible en el editor y cualquiera lo borraría sin notarlo. Guarda el record ID de
+Personal por compatibilidad, pero la FK con la que se filtra es **`ID Personal Core`**
+(campo agregado el 2026-08-06; el registro histórico de abril quedó rellenado).
+
+Usa hora de Colombia siempre (`fechaBogota()` / `horaBogota()`): `Fecha_Hora`
+guarda el instante en ISO UTC y `Fecha` / `Hora` el día y la hora locales.
 
 ## Estructura del Monorepo
 
@@ -415,6 +448,26 @@ tener sesión no es autorización:
 - El plan se define **una sola vez**: si ya tiene valor responde **409**. Cambiarlo
   sería rehacer un compromiso que ya quedó firmado en el documento de autorización.
 
+#### Reemisión del documento al definir el plan
+
+Cuando Gestión del Ser concede un permiso compensatorio sin elegir plan, el PDF
+sale diciendo *"por definir"*. Si el colaborador lo elige después, el registro
+cambia pero **el documento firmado se quedaría con el texto viejo** — y entonces
+el único papel firmado por ambas partes certificaría un compromiso que ya no es
+el real. Por eso `/api/solicitudes/permiso/compensacion` reemite el documento con
+`reemitirDocumentoPermiso()` (`src/lib/documento-autorizacion.ts`).
+
+- **Nada se borra.** La key de S3 lleva marca de tiempo, así que la versión
+  anterior sigue existiendo, y el adjunto `PDF_Firmado` acumula ambas.
+- El PDF reemitido **dice por qué existe**: bajo el plan aparece "Plan de
+  reposición elegido por el colaborador el {fecha}, después de la autorización".
+- **No bloquea.** Si falla la reemisión, el plan igual queda guardado y la
+  respuesta incluye `aviso`. ⚠️ No hay reintento: como el plan se define una sola
+  vez, un segundo intento choca con el 409.
+- `detallesSolicitud()` vive en el mismo módulo porque la usan los dos caminos que
+  emiten el PDF. Si divergieran, el mismo permiso saldría con distinto detalle en
+  cada versión del documento.
+
 ### Documento oficial de autorización
 
 Al aprobar o rechazar, `/api/solicitudes/autorizar`:
@@ -505,6 +558,7 @@ AIRTABLE_TABLE_ROLES=Roles y Permisos
 AIRTABLE_TABLE_SOLICITUD_PERMISO=Solicitud_Permiso
 AIRTABLE_TABLE_SOLICITUD_VACACIONES=Solicitud_Vacaciones
 AIRTABLE_TABLE_NOVEDADES_NOMINA=Reportes Novedades Nomina
+AIRTABLE_TABLE_ASISTENCIA=Asistencia Personal
 
 # S3 (firmas digitales)
 AWS_REGION=us-east-1

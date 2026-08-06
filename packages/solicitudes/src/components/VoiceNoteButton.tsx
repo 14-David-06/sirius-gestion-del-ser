@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { MODULOS } from "./ui";
 
 interface Props {
@@ -9,107 +9,210 @@ interface Props {
   color?: string;
 }
 
+/** Tope de seguridad: si nadie detiene, se corta sola. */
+const DURACION_MAXIMA_MS = 3 * 60 * 1000;
+/** Reinicios seguidos que fallan de inmediato antes de rendirse. */
+const MAX_REINICIOS_FALLIDOS = 4;
+
 export function VoiceNoteButton({
   onTranscript,
   disabled = false,
   color = MODULOS.permiso.color,
 }: Props) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [escuchando, setEscuchando] = useState(false);
+  const [parcial, setParcial] = useState("");
   const [error, setError] = useState("");
+
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  // El usuario quiere seguir dictando: sobrevive a los cortes de Chrome.
+  const debeEscucharRef = useRef(false);
+  const reinicioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const limiteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inicioSesionRef = useRef(0);
+  const reiniciosFallidosRef = useRef(0);
 
+  // onTranscript llega como arrow inline desde los formularios: cambia de
+  // identidad en cada render. Guardarla en un ref evita que el efecto que crea
+  // el reconocimiento se vuelva a ejecutar y aborte la grabación en curso.
+  const onTranscriptRef = useRef(onTranscript);
   useEffect(() => {
-    // Verificar soporte de Web Speech API
-    if (typeof window !== "undefined") {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition() as SpeechRecognitionInstance;
-        recognitionRef.current.lang = "es-CO"; // Español colombiano
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-
-        recognitionRef.current.onresult = (event: SpeechRecognitionEventType) => {
-          const transcript = event.results[0][0].transcript;
-          onTranscript(transcript);
-          setIsRecording(false);
-          setIsProcessing(false);
-        };
-
-        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEventType) => {
-          console.error("Speech recognition error:", event.error);
-          setError(
-            event.error === "no-speech"
-              ? "No se detectó voz. Intenta de nuevo."
-              : event.error === "not-allowed"
-              ? "Permiso de micrófono denegado."
-              : "Error al procesar el audio. Intenta de nuevo."
-          );
-          setIsRecording(false);
-          setIsProcessing(false);
-        };
-
-        recognitionRef.current.onend = () => {
-          setIsRecording(false);
-          setIsProcessing(false);
-        };
-      }
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
+    onTranscriptRef.current = onTranscript;
   }, [onTranscript]);
 
-  function toggleRecording() {
+  const detenerTimers = useCallback(() => {
+    if (reinicioTimerRef.current) clearTimeout(reinicioTimerRef.current);
+    if (limiteTimerRef.current) clearTimeout(limiteTimerRef.current);
+    reinicioTimerRef.current = null;
+    limiteTimerRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Sin soporte no se crea nada: el aviso lo da el click sobre el botón.
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition() as SpeechRecognitionInstance;
+    recognition.lang = "es-CO"; // Español colombiano
+    // continuous: sin esto el motor corta en la primera pausa larga del habla.
+    recognition.continuous = true;
+    // interimResults: da texto en vivo y mantiene la sesión con actividad.
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      inicioSesionRef.current = Date.now();
+      setEscuchando(true);
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEventType) => {
+      // Hubo voz: la racha de reinicios vacíos se reinicia.
+      reiniciosFallidosRef.current = 0;
+
+      let definitivo = "";
+      let provisional = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const resultado = event.results[i];
+        const texto = resultado[0].transcript;
+        if (resultado.isFinal) definitivo += texto;
+        else provisional += texto;
+      }
+
+      setParcial(provisional.trim());
+
+      // Se emite solo lo definitivo: el contrato con los formularios es
+      // "agrega este fragmento al final del campo".
+      const limpio = definitivo.trim();
+      if (limpio) onTranscriptRef.current(limpio);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEventType) => {
+      switch (event.error) {
+        // Cortes normales del motor mientras el usuario piensa: onend reinicia.
+        case "no-speech":
+        case "aborted":
+          return;
+        case "not-allowed":
+        case "service-not-allowed":
+          debeEscucharRef.current = false;
+          setError(
+            "Permiso de micrófono denegado. Habilítalo en el candado de la barra de direcciones."
+          );
+          return;
+        case "audio-capture":
+          debeEscucharRef.current = false;
+          setError("No se detectó micrófono. Conecta uno y vuelve a intentar.");
+          return;
+        case "network":
+          debeEscucharRef.current = false;
+          setError("Sin conexión con el servicio de voz. Revisa tu internet.");
+          return;
+        default:
+          debeEscucharRef.current = false;
+          setError("Error al procesar el audio. Intenta de nuevo.");
+      }
+    };
+
+    recognition.onend = () => {
+      setParcial("");
+
+      if (!debeEscucharRef.current) {
+        setEscuchando(false);
+        return;
+      }
+
+      // Chrome termina la sesión por su cuenta tras unos segundos de silencio.
+      // Mientras el usuario no haya pulsado "Detener", se reanuda sola.
+      const duracion = Date.now() - inicioSesionRef.current;
+      if (duracion < 500) reiniciosFallidosRef.current += 1;
+      else reiniciosFallidosRef.current = 0;
+
+      if (reiniciosFallidosRef.current >= MAX_REINICIOS_FALLIDOS) {
+        debeEscucharRef.current = false;
+        setEscuchando(false);
+        setError("El micrófono no responde. Recarga la página e intenta de nuevo.");
+        return;
+      }
+
+      reinicioTimerRef.current = setTimeout(() => {
+        if (!debeEscucharRef.current) return;
+        try {
+          recognition.start();
+        } catch {
+          // start() sobre una sesión aún viva lanza InvalidStateError: se ignora,
+          // el reconocimiento ya está corriendo.
+        }
+      }, 250);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      debeEscucharRef.current = false;
+      detenerTimers();
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.onresult = null;
+      recognition.abort();
+      recognitionRef.current = null;
+    };
+  }, [detenerTimers]);
+
+  const detener = useCallback(() => {
+    debeEscucharRef.current = false;
+    detenerTimers();
+    setParcial("");
+    setEscuchando(false);
+    recognitionRef.current?.stop();
+  }, [detenerTimers]);
+
+  function alternarGrabacion() {
     if (!recognitionRef.current) {
       setError("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
       return;
     }
 
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      setError("");
-      setIsProcessing(true);
-      recognitionRef.current.start();
-      setIsRecording(true);
+    if (debeEscucharRef.current) {
+      detener();
+      return;
     }
-  }
 
-  const isActive = isRecording || isProcessing;
+    setError("");
+    reiniciosFallidosRef.current = 0;
+    debeEscucharRef.current = true;
+    setEscuchando(true);
+
+    try {
+      recognitionRef.current.start();
+    } catch {
+      // Ya estaba iniciando: el onstart pendiente confirma el estado.
+    }
+
+    limiteTimerRef.current = setTimeout(detener, DURACION_MAXIMA_MS);
+  }
 
   return (
     <div className="flex flex-col gap-2">
       <button
         type="button"
-        onClick={toggleRecording}
-        disabled={disabled || isProcessing}
+        onClick={alternarGrabacion}
+        disabled={disabled}
         className={`inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-          isActive
+          escuchando
             ? "border-red-200 bg-red-50 text-red-600"
             : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
         }`}
-        title={isRecording ? "Haz clic para detener" : "Haz clic y habla"}
+        title={escuchando ? "Haz clic para detener" : "Haz clic y habla"}
       >
-        {isRecording ? (
+        {escuchando ? (
           <>
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
             </span>
             <span>Detener grabación</span>
-          </>
-        ) : isProcessing ? (
-          <>
-            <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-              <path d="M22 12a10 10 0 01-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <span>Procesando...</span>
           </>
         ) : (
           <>
@@ -135,9 +238,11 @@ export function VoiceNoteButton({
         <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
       )}
 
-      {isRecording && (
+      {escuchando && (
         <p className="text-xs italic text-gray-500">
-          Habla ahora... Se detendrá automáticamente al terminar.
+          {parcial
+            ? parcial
+            : "Escuchando... habla con normalidad y pulsa “Detener grabación” al terminar."}
         </p>
       )}
     </div>
@@ -145,14 +250,20 @@ export function VoiceNoteButton({
 }
 
 // Tipos para Web Speech API
+interface SpeechRecognitionResultType {
+  readonly length: number;
+  readonly isFinal: boolean;
+  [index: number]: {
+    transcript: string;
+    confidence: number;
+  };
+}
+
 interface SpeechRecognitionEventType {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-        confidence: number;
-      };
-    };
+  readonly resultIndex: number;
+  readonly results: {
+    readonly length: number;
+    [index: number]: SpeechRecognitionResultType;
   };
 }
 
@@ -165,9 +276,11 @@ interface SpeechRecognitionInstance {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  maxAlternatives: number;
   start(): void;
   stop(): void;
   abort(): void;
+  onstart: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventType) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEventType) => void) | null;
   onend: (() => void) | null;

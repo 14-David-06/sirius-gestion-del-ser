@@ -8,6 +8,7 @@
  */
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib";
+import { LOGO_PROPORCION, LOGO_SIRIUS_BASE64 } from "./logo";
 
 /**
  * Solo permisos y vacaciones generan documento de autorización: las novedades de
@@ -40,6 +41,12 @@ export interface AutorizacionPdfParams {
   compensado?: boolean;
   /** Nombre del plan con el que el trabajador repone el tiempo. */
   planCompensacion?: string;
+  /**
+   * Aclaración bajo el plan de reposición. Se usa al reemitir el documento
+   * cuando el plan se definió después de la autorización: sin ella, el lector no
+   * entendería por qué existen dos versiones del mismo documento.
+   */
+  notaCompensacion?: string;
   diasCompensacion?: DiaCompensacionPdf[];
   autorizador: { nombre: string; cedula: string; cargo: string };
   /** Fecha de la autorización, ISO "YYYY-MM-DD". */
@@ -71,6 +78,7 @@ const MARGEN = 56;
 const ANCHO = 595.28; // A4 en puntos
 const ALTO = 841.89;
 const PIE = 70; // espacio reservado al pie de página
+const LOGO_ALTO = 26; // alto del logo en el encabezado
 
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -296,6 +304,21 @@ export async function generarPdfAutorizacion(
   cursor.y = ALTO - MARGEN - 10;
 
   // ── Encabezado ──
+  // El logo va sobre la razón social, en el espacio libre entre la franja de
+  // color y el título. Si el PNG fuera ilegible se sigue emitiendo: un documento
+  // sin logo es peor que ninguno, pero perder la autorización lo es más.
+  try {
+    const logo = await doc.embedPng(LOGO_SIRIUS_BASE64);
+    cursor.page.drawImage(logo, {
+      x: MARGEN,
+      y: cursor.y + 6,
+      height: LOGO_ALTO,
+      width: LOGO_ALTO * LOGO_PROPORCION,
+    });
+  } catch (error) {
+    console.error("[pdf autorizacion] No se pudo incrustar el logo:", error);
+  }
+
   cursor.page.drawText("SIRIUS REGENERATIVE SOLUTIONS", {
     x: MARGEN,
     y: cursor.y,
@@ -417,6 +440,8 @@ export async function generarPdfAutorizacion(
     // dejarlo sin definir, y entonces lo elige el propio colaborador.
     if (params.compensado) {
       cursor.espacio(40);
+      // Ocupa el ancho completo: el plan es una condición de la autorización y
+      // recortarla a media palabra dejaría el compromiso a medio enunciar.
       campo(
         cursor.page,
         MARGEN,
@@ -425,8 +450,25 @@ export async function generarPdfAutorizacion(
         params.planCompensacion?.trim() ||
           "Por definir por el colaborador en su lista de solicitudes",
         fonts,
+        ANCHO_UTIL,
       );
       cursor.y -= 40;
+
+      const nota = params.notaCompensacion?.trim();
+      if (nota) {
+        for (const linea of envolver(nota, regular, 8, ANCHO_UTIL)) {
+          cursor.espacio(14);
+          cursor.page.drawText(linea, {
+            x: MARGEN,
+            y: cursor.y,
+            size: 8,
+            font: regular,
+            color: GRIS_SUAVE,
+          });
+          cursor.y -= 11;
+        }
+        cursor.y -= 14;
+      }
     }
 
     const dias = params.diasCompensacion ?? [];

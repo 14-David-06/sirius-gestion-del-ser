@@ -33,8 +33,12 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
   const [datos, setDatos] = useState<DatosPlan>(DATOS_PLAN_VACIOS);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  /** Resultado de la última definición de plan, ya cerrado el modal. */
+  const [resultado, setResultado] = useState<{ texto: string; ok: boolean } | null>(null);
 
-  if (permisos.length === 0) return null;
+  // El aviso sobrevive a la desaparición del permiso de la lista: al guardar el
+  // plan el permiso deja de estar pendiente, y sin esto el mensaje se perdería.
+  if (permisos.length === 0 && !resultado) return null;
 
   function abrir(permiso: PermisoSinPlan) {
     setAbierto(permiso);
@@ -94,7 +98,19 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
         return;
       }
 
+      const cuerpo = await res.json().catch(() => ({}));
       setAbierto(null);
+      // El documento de autorización se reemite con el plan ya definido. Si eso
+      // falla, el plan igual quedó guardado: se dice, no se oculta.
+      setResultado(
+        cuerpo.aviso
+          ? { texto: cuerpo.aviso, ok: false }
+          : {
+              texto:
+                "Listo. Tu plan quedó registrado y el documento de autorización se actualizó con los días pactados.",
+              ok: true,
+            },
+      );
       router.refresh();
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
@@ -105,6 +121,31 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
 
   return (
     <>
+      {resultado && (
+        <div
+          className={`mb-6 flex items-start gap-3 rounded-2xl border px-5 py-4 print:hidden ${
+            resultado.ok
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-amber-300 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <svg className="mt-0.5 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={
+                resultado.ok
+                  ? "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  : "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              }
+            />
+          </svg>
+          <p className="text-sm leading-relaxed">{resultado.texto}</p>
+        </div>
+      )}
+
+      {permisos.length > 0 && (
       <div className="mb-8 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 print:hidden">
         <div className="flex items-start gap-3 px-5 py-4 sm:px-6">
           <svg
@@ -157,6 +198,7 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
           ))}
         </ul>
       </div>
+      )}
 
       {abierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">

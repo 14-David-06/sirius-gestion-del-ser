@@ -14,6 +14,7 @@ export const TABLES = {
   VACACIONES:  process.env.AIRTABLE_TABLE_SOLICITUD_VACACIONES ?? "Solicitud_Vacaciones",
   NOVEDADES:   process.env.AIRTABLE_TABLE_NOVEDADES_NOMINA   ?? "Reportes Novedades Nomina",
   DIAS_PACTO:  process.env.AIRTABLE_TABLE_DIAS_PACTO         ?? "Dias_Pacto",
+  ASISTENCIA:  process.env.AIRTABLE_TABLE_ASISTENCIA         ?? "Asistencia Personal",
 } as const;
 
 // ── FK compartida ─────────────────────────────────────────────────────────────
@@ -126,6 +127,21 @@ export const FIELDS = {
     FECHA_ULTIMO_USO: "fecha_ultimo_uso",
     OBSERVACIONES:    "observaciones",
     ESTADO:           "estado",
+  },
+  ASISTENCIA: {
+    // ⚠️ El nombre real del campo primario empieza con un BOM (U+FEFF) que dejó
+    // la importación por CSV. Sin ese carácter Airtable responde
+    // UNKNOWN_FIELD_NAME. Se escribe escapado porque es invisible en el editor.
+    EMPLEADO_RECORD_ID: "\uFEFFEmpleado_RecordID",
+    NOMBRE:     "Nombre_Empleado",
+    CEDULA:     "Cedula",
+    TIPO:       "Tipo",
+    FECHA:      "Fecha",
+    HORA:       "Hora",
+    FECHA_HORA: "Fecha_Hora",
+    UBICACION:  "Ubicacion",
+    NOTAS:      "Notas",
+    NOVEDADES:  "Novedades_Asistencia",
   },
 } as const;
 

@@ -12,6 +12,11 @@ import { cookies } from "next/headers";
 import { verifyJWT } from "@/lib/auth";
 import { TABLES, FIELDS, FK_ID_CORE, ESTADOS_APROBADOS } from "@/lib/airtable-schema";
 import {
+  detallesSolicitud,
+  notaPlanDefinidoDespues,
+  reemitirDocumentoPermiso,
+} from "@/lib/documento-autorizacion";
+import {
   PLAN_SABADO,
   PLAN_RETO,
   diasEntre,
@@ -161,7 +166,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, plan: planNombre, dias });
+    // El documento de autorización se emitió diciendo "plan por definir". Ahora
+    // que el plan existe hay que reemitirlo: si no, el único papel firmado por
+    // ambas partes seguiría certificando un compromiso que ya no es el real.
+    //
+    // No bloquea. El plan ya quedó guardado y es lo que compromete; perderlo por
+    // un fallo de S3 sería peor que tener el documento desactualizado un rato.
+    let documento: { url: string; hash: string } | null = null;
+    let aviso: string | null = null;
+
+    try {
+      const camposActualizados = {
+        ...campos,
+        [FIELDS.PERMISO.PLAN_COMPENSACION]: planNombre,
+        [FIELDS.PERMISO.DIAS_COMPENSACION]: JSON.stringify(dias),
+        [FIELDS.PERMISO.FECHA_COMP]: dias.map((d) => d.fecha).sort()[0],
+      };
+
+      const emitido = await reemitirDocumentoPermiso({
+        recordId,
+        campos: camposActualizados,
+        origen: req.nextUrl.origin,
+        detalles: detallesSolicitud("permiso", camposActualizados),
+        nota: notaPlanDefinidoDespues(),
+      });
+
+      documento = { url: emitido.url, hash: emitido.sha256 };
+    } catch (error) {
+      console.error("[solicitudes/permiso/compensacion] reemisión del documento:", error);
+      aviso =
+        "Tu plan de reposición quedó guardado y es el que vale. " +
+        "El documento de autorización no se pudo actualizar en este momento.";
+    }
+
+    return NextResponse.json({ ok: true, plan: planNombre, dias, documento, aviso });
   } catch (error: unknown) {
     console.error("Error en /api/solicitudes/permiso/compensacion:", error);
     return NextResponse.json(
