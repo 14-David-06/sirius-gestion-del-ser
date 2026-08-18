@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeAirtableValue } from "../lib/security";
-import { TABLES, FIELDS, FK_ID_CORE, ESTADO_PENDIENTE } from "../lib/schema";
+import { FIELDS, FK_ID_CORE, ESTADO_PENDIENTE } from "../lib/schema";
 import { TIPO_HORAS_EXTRA, TIPO_NOVEDAD_OTRA } from "../lib/constants";
-import type { ResolvePayload } from "../types";
+import { resolverAirtable } from "../infra";
+import type { OpcionesHandlers } from "../types";
 
-const base = () => process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
-const key  = () => process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
+export function createNovedadesHandlers(opciones: OpcionesHandlers) {
+  const { resolvePayload, airtable } = opciones;
 
-export function createNovedadesHandlers(resolvePayload: ResolvePayload) {
   async function GET() {
     const payload = await resolvePayload();
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const { baseId, apiKey, tablas } = resolverAirtable(airtable);
     const formula = encodeURIComponent(`{${FK_ID_CORE}}='${escapeAirtableValue(payload.idCore)}'`);
     const sort    = encodeURIComponent(FIELDS.NOVEDADES.FECHA_CREACION);
     const params  = `filterByFormula=${formula}&sort[0][field]=${sort}&sort[0][direction]=desc&maxRecords=20`;
     const res = await fetch(
-      `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.NOVEDADES)}?${params}`,
-      { headers: { Authorization: `Bearer ${key()}` }, cache: "no-store" }
+      `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tablas.novedades)}?${params}`,
+      { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store" }
     );
+
+    // ⚠️ No basta con leer `records`: la respuesta de error de Airtable no lo trae,
+    // y devolverla como lista vacía le dice al colaborador «no tienes solicitudes»
+    // cuando lo que pasa es que la credencial no alcanza o la tabla no es esa. Así
+    // se escondió una API key sin acceso a la base durante toda una integración.
+    if (!res.ok) {
+      console.error("[solicitudes/novedades GET]", await res.text());
+      return NextResponse.json({ error: "Error al consultar Airtable" }, { status: 500 });
+    }
+
     const data = await res.json();
     return NextResponse.json(data.records ?? []);
   }
@@ -27,6 +38,7 @@ export function createNovedadesHandlers(resolvePayload: ResolvePayload) {
     const payload = await resolvePayload();
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const { baseId, apiKey, tablas } = resolverAirtable(airtable);
     const body = await req.json();
 
     const fields: Record<string, unknown> = {
@@ -45,10 +57,10 @@ export function createNovedadesHandlers(resolvePayload: ResolvePayload) {
     }
 
     const res = await fetch(
-      `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.NOVEDADES)}`,
+      `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tablas.novedades)}`,
       {
         method: "POST",
-        headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ fields }),
       }
     );

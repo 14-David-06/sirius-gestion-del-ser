@@ -64,3 +64,7 @@ CLAUDE.md
 CLAUDE.md
 *.md
 CLAUDE.md
+
+# El README del paquete es su guía de integración: viaja con el código, no es
+# un informe generado como los que este *.md de arriba mantiene fuera del repo.
+!packages/solicitudes/README.md

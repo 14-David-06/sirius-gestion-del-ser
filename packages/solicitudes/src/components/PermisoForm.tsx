@@ -21,6 +21,13 @@ import {
 interface Props {
   apiBasePath?: string;
   basePath?: string;
+  /**
+   * Si la app tiene el beneficio de día siriano. Apagarlo quita la opción de la
+   * lista de tipos: el permiso de día siriano nace autorizado y necesita que la
+   * app emita su documento (`infra.diaSiriano`), así que ofrecerlo donde no está
+   * implementado lleva al colaborador a un 400 después de llenar el formulario.
+   */
+  diaSirianoHabilitado?: boolean;
 }
 
 type Me = { nombre: string; cedula: string; idCore: string; cargo: string };
@@ -29,7 +36,11 @@ type DiasSirianosData = { saldo_disponible: number };
 const COLOR = MODULOS.permiso.color;
 const CLS = inputCls("permiso");
 
-export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitudes" }: Props) {
+export function PermisoForm({
+  apiBasePath = "",
+  basePath = "/dashboard/solicitudes",
+  diaSirianoHabilitado = true,
+}: Props) {
   const [me, setMe] = useState<Me | null>(null);
   const [diasSirianos, setDiasSirianos] = useState<DiasSirianosData | null>(null);
   const [tipo, setTipo] = useState("");
@@ -44,7 +55,11 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const esDiaSiriano = tipo === TIPO_DIA_SIRIANO;
+  const tipos = diaSirianoHabilitado
+    ? TIPOS_PERMISO
+    : TIPOS_PERMISO.filter((t) => t !== TIPO_DIA_SIRIANO);
+
+  const esDiaSiriano = diaSirianoHabilitado && tipo === TIPO_DIA_SIRIANO;
   const esOtro = tipo === TIPO_PERMISO_OTRO;
 
   useEffect(() => {
@@ -233,7 +248,7 @@ export function PermisoForm({ apiBasePath = "", basePath = "/dashboard/solicitud
                 className={CLS}
               >
                 <option value="">Selecciona un tipo...</option>
-                {TIPOS_PERMISO.map((t) => (
+                {tipos.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>

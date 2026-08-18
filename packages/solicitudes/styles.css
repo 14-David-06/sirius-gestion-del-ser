@@ -1,0 +1,232 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Superficie nocturna — primitivas visuales de @sirius/solicitudes
+
+   Los componentes del módulo no traen sus estilos en clases de Tailwind sueltas:
+   dependen de estas primitivas. La razón es la impresión. Al imprimir hay que
+   devolver TODAS las tarjetas a blanco sobre negro de un solo golpe — un permiso
+   con fondo translúcido sale ilegible en papel—, y eso solo se puede hacer una
+   vez, aquí, no repartido por componente.
+
+   La app consumidora las importa en su CSS global:
+
+       @import "tailwindcss";
+       @import "@sirius/solicitudes/styles.css";
+
+   y le dice a Tailwind que escanee el paquete, porque las clases de utilidad que
+   usan los componentes están en node_modules y Tailwind lo ignora por defecto:
+
+       @source "../../node_modules/@sirius/solicitudes/src";
+
+   Piso de contraste: `text-white/60` es el mínimo para texto y `/45` solo para
+   adornos sin información. Por debajo de 60 % el blanco sobre la foto baja de
+   4.5:1 y el texto deja de leerse.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El tinte es oscuro, no blanco: encima va texto blanco, y aclarar la tarjeta le
+ * quita contraste justo donde se lee. La sensación de vidrio la dan el `blur` y
+ * el brillo interior del borde, no la opacidad del relleno — así que el vidrio se
+ * nota igual y las letras se ven sobre cualquier zona de la foto, incluida la
+ * franja clara del cielo.
+ */
+.glass {
+  background: rgba(10, 16, 30, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 40px -24px rgba(0, 0, 0, 0.8);
+}
+
+/* Un nivel más sólido, para paneles con mucho texto encima de la foto. */
+.glass-solid {
+  background: rgba(9, 14, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 50px -28px rgba(0, 0, 0, 0.85);
+}
+
+/**
+ * Color de texto por defecto de la superficie nocturna.
+ *
+ * El `body` de la app suele ser claro, porque los documentos y la impresión lo
+ * siguen siendo. Sobre la foto, cualquier texto al que se le olvide una clase de
+ * color hereda ese gris casi negro y desaparece. Esto le da un suelo legible: las
+ * clases explícitas de Tailwind siguen ganando. Va en el contenedor de la vista
+ * nocturna (el `<main>` del dashboard), no en `:root`.
+ */
+.superficie-noche {
+  color: #e8ecf5;
+}
+
+/* ── Controles de formulario sobre la superficie nocturna ────────────────── */
+
+/**
+ * Los campos claros no sirven encima de la foto, pero volverlos oscuros no basta:
+ * el calendario nativo de `type="date"` y el desplegable de `<select>` los pinta
+ * el sistema, no nosotros. Sin `color-scheme: dark` salen claros — y el texto
+ * blanco del campo queda blanco sobre blanco en el popup.
+ *
+ * Va por clase y no en `:root` porque la app sigue siendo clara donde no hay foto
+ * (documentos, impresión) y `color-scheme` se hereda.
+ */
+.campo-oscuro {
+  color-scheme: dark;
+  /* Gana por especificidad a una regla `input, textarea, select { color: … }` de
+     la app: un campo oscuro al que se le olvide `text-white` quedaría con texto
+     casi negro sobre su propio relleno oscuro. */
+  color: #ffffff;
+}
+
+.campo-oscuro::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+}
+
+/**
+ * El desplegable de un `<select>` lo pinta el sistema, y toma el
+ * `background-color` que le demos al control. Con el relleno translúcido del
+ * resto de los campos (`bg-white/[0.06]`) el popup se compone sobre lienzo
+ * blanco: queda casi blanco con el texto blanco del campo encima — invisible.
+ * `color-scheme: dark` no alcanza, porque un fondo declarado por el autor gana
+ * sobre el lienzo oscuro del sistema.
+ *
+ * Por eso el `select` es el único campo con relleno **opaco**, y las `option`
+ * llevan color y fondo explícitos: heredarlos deja el mismo blanco sobre blanco.
+ * El selector es `select.campo-oscuro` (elemento + clase) para ganarle a la
+ * utilidad de Tailwind de cada call site. ⚠️ No le pongas `bg-white/[…]` a un
+ * `<select>`.
+ */
+select.campo-oscuro {
+  background-color: #131d33;
+}
+
+.campo-oscuro option,
+.campo-oscuro optgroup {
+  background-color: #131d33;
+  color: #ffffff;
+}
+
+/* La barra de scroll clara corta la composición nocturna por el borde. */
+.scroll-noche {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.scroll-noche::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll-noche::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-noche::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.scroll-noche::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+  background-clip: content-box;
+}
+
+/* ── Movimiento ──────────────────────────────────────────────────────────── */
+
+/* Deriva lentísima de la foto: da vida al fondo sin competir con el contenido. */
+@keyframes deriva-fondo {
+  0%   { transform: scale(1.06) translate3d(0, 0, 0); }
+  100% { transform: scale(1.14) translate3d(-1.5%, -1.2%, 0); }
+}
+
+/* Resplandores de color que flotan detrás del vidrio. */
+@keyframes flotar-aurora {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4%, -6%, 0) scale(1.12); }
+}
+
+@keyframes titilar {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.9; }
+}
+
+@keyframes entrar-arriba {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.anim-deriva  { animation: deriva-fondo 48s ease-in-out infinite alternate; }
+.anim-aurora  { animation: flotar-aurora 26s ease-in-out infinite; }
+.anim-titilar { animation: titilar 4s ease-in-out infinite; }
+
+/**
+ * La entrada arranca oculta: sin esto se ve un salto en el primer frame.
+ *
+ * ⚠️ `.anim-entrada` y `hover:-translate-*` no pueden ir en el mismo elemento:
+ * la animación usa `forwards`, deja fijado `transform: none` y se come el hover.
+ * Van en envoltorio (entrada) + hijo (hover).
+ */
+.anim-entrada {
+  opacity: 0;
+  animation: entrar-arriba 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-deriva,
+  .anim-aurora,
+  .anim-titilar,
+  .anim-entrada {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* En papel el suelo claro de la superficie nocturna sería blanco sobre blanco. */
+  .superficie-noche {
+    background: white;
+    color: black;
+  }
+
+  /* El vidrio vuelve a papel: fondo blanco, borde gris, texto negro. */
+  .glass,
+  .glass-solid {
+    background: #ffffff !important;
+    border-color: #e5e7eb !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .glass,
+  .glass-solid,
+  .glass *,
+  .glass-solid * {
+    color: #111827 !important;
+  }
+
+  .anim-entrada {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  /* Un campo translúcido sobre papel no se ve: vuelve a caja blanca con borde. */
+  .campo-oscuro {
+    color-scheme: light;
+    background: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+  }
+}

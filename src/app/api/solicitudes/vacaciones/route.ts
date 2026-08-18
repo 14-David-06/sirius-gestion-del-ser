@@ -1,10 +1,10 @@
-import { cookies } from "next/headers";
-import { verifyJWT } from "@/lib/auth";
-import { createVacacionesHandlers } from "@sirius/solicitudes";
+import { createVacacionesHandlers } from "@sirius/solicitudes/server";
+import { resolvePayload } from "@/lib/sesion-solicitudes";
+import { solicitudesInfra } from "@/lib/solicitudes-infra";
 
-const { GET, POST } = createVacacionesHandlers(async () => {
-  const token = (await cookies()).get("sirius-auth")?.value;
-  return token ? verifyJWT(token, process.env.JWT_SECRET ?? "") : null;
+const { GET, POST } = createVacacionesHandlers({
+  resolvePayload,
+  infra: solicitudesInfra,
 });
 
 export { GET, POST };

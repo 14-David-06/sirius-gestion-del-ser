@@ -31,7 +31,7 @@ const API_KEY = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
 
 interface CompensacionBody {
   recordId: string;
-  /** Id del plan — ver PLANES_COMPENSACION en src/lib/compensacion.ts. */
+  /** Id del plan — ver PLANES_COMPENSACION en @sirius/solicitudes/compensacion. */
   plan: string;
   /** Plan 1: sábados elegidos. */
   fechas?: string[];

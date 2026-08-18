@@ -6,6 +6,8 @@ export const TABLES = {
   PERMISO:    process.env.AIRTABLE_TABLE_SOLICITUD_PERMISO     ?? "Solicitud_Permiso",
   VACACIONES: process.env.AIRTABLE_TABLE_SOLICITUD_VACACIONES  ?? "Solicitud_Vacaciones",
   NOVEDADES:  process.env.AIRTABLE_TABLE_NOVEDADES_NOMINA      ?? "Reportes Novedades Nomina",
+  // Saldo del beneficio de día siriano. Solo la usan las apps que lo tienen.
+  DIAS_SIRIANOS: process.env.AIRTABLE_TABLE_DIAS_SIRIANOS       ?? "Dias_Sirianos",
 } as const;
 
 // FK canónica del empleado en todas las tablas de solicitudes.
@@ -53,7 +55,7 @@ export const FIELDS = {
     FECHA_AUTORIZACION:   "Fecha_Autorizacion",
     COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
     DIAS_COMPENSACION:    "Dias_Compensacion_Detalle",
-    // Plan con el que se repone el tiempo (ver src/lib/compensacion.ts). Vacío
+    // Plan con el que se repone el tiempo (ver @sirius/solicitudes/compensacion). Vacío
     // —y sin DIAS_COMPENSACION— con COMPENSADO = true significa que aún falta
     // definir cómo repone el trabajador.
     PLAN_COMPENSACION:      "Plan_Compensacion",
@@ -99,7 +101,22 @@ export const FIELDS = {
     FECHA_AUTORIZACION: "Fecha_Autorizacion",
     COMENTARIO_AUTORIZACION: "Comentario_Autorizacion",
   },
+  // Saldo del beneficio de día siriano, por colaborador y periodo. En minúscula
+  // porque la tabla se creó por script y así quedaron sus campos.
+  DIAS_SIRIANOS: {
+    ID_COLABORADOR:   "id_colaborador_core",
+    SALDO_DISPONIBLE: "saldo_disponible",
+    SALDO_USADO:      "saldo_usado",
+    PERIODO:          "periodo",
+    FECHA_ULTIMO_USO: "fecha_ultimo_uso",
+    OBSERVACIONES:    "observaciones",
+    ESTADO:           "estado",
+  },
 } as const;
+
+/** Estado de la fila de saldo cuando ya no quedan días en el periodo. */
+export const SALDO_AGOTADO = "Agotado";
+export const SALDO_ACTIVO = "Activo";
 
 export const ESTADO_PENDIENTE = "Pendiente";
 /** Estado de un permiso aprobado (opción del singleSelect Estado_Permiso). */

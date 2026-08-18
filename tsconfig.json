@@ -22,12 +22,16 @@
         "name": "next"
       }
     ],
+    /**
+     * `@sirius/solicitudes` NO va aquí: se resuelve por el workspace de npm
+     * (node_modules/@sirius/solicitudes → packages/solicitudes) y por el campo
+     * `exports` de su package.json. Un alias lo cortocircuitaría, y entonces
+     * este repo compilaría con rutas que la app que instale el paquete no tiene
+     * — las subrutas (`/server`, `/compensacion`) dejarían de verificarse.
+     */
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@sirius/solicitudes": [
-        "./packages/solicitudes/src/index.ts"
       ]
     }
   },

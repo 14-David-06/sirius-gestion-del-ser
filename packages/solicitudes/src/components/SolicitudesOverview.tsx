@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { escapeAirtableValue } from "../lib/security";
-import { TABLES, FIELDS, FK_ID_CORE, ESTADOS_APROBADOS } from "../lib/schema";
+import { FIELDS, FK_ID_CORE, ESTADOS_APROBADOS } from "../lib/schema";
+import { resolverAirtable, type AirtableConfig } from "../infra";
 import {
   MODULOS,
   ModuloKey,
@@ -10,7 +11,7 @@ import {
 } from "./ui";
 import { AvisoCompensacion, type PermisoSinPlan } from "./AvisoCompensacion";
 import { TarjetaTilt } from "./TarjetaTilt";
-import { diasEntre, horasAReponer } from "@/lib/compensacion";
+import { diasEntre, horasAReponer } from "../lib/compensacion";
 
 interface Props {
   idCore: string;
@@ -18,6 +19,12 @@ interface Props {
   nombre?: string;
   basePath?: string;
   apiBasePath?: string;
+  /**
+   * Base y tablas de Airtable. Por defecto, las variables de entorno. Pásalas si
+   * la app las tiene en su propia config: leer de otra tabla que la que escriben
+   * los handlers dejaría el historial siempre vacío.
+   */
+  airtable?: AirtableConfig;
   /** Se inserta entre el encabezado y las acciones (avisos contextuales). */
   children?: React.ReactNode;
 }
@@ -48,9 +55,8 @@ function esEstadoAprobado(estado: string): boolean {
 
 type Row = { modulo: ModuloKey; tipo: string; subtipo: string; fecha: string; estado: string };
 
-async function fetchRecientes(idCore: string): Promise<Row[]> {
-  const BASE = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
-  const KEY  = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
+async function fetchRecientes(idCore: string, airtable?: AirtableConfig): Promise<Row[]> {
+  const { baseId: BASE, apiKey: KEY, tablas } = resolverAirtable(airtable);
 
   const formula    = encodeURIComponent(`{${FK_ID_CORE}}='${escapeAirtableValue(idCore)}'`);
   const sortPerm   = encodeURIComponent(FIELDS.PERMISO.FECHA_SOLICITUD);
@@ -59,10 +65,25 @@ async function fetchRecientes(idCore: string): Promise<Row[]> {
   const headers    = { Authorization: `Bearer ${KEY}` };
   const opts       = { headers, cache: "no-store" } as const;
 
+  /**
+   * Una tabla que falla no puede pasar por «sin registros»: el historial saldría
+   * vacío y el colaborador entendería que no tiene solicitudes, cuando lo que pasa
+   * es que la credencial no alcanza o la tabla no es esa. La página igual se
+   * muestra —el historial es informativo— pero el fallo queda en el log.
+   */
+  const leer = async (url: string, cual: string) => {
+    const r = await fetch(url, opts);
+    if (!r.ok) {
+      console.error(`[SolicitudesOverview] ${cual}:`, await r.text());
+      throw new Error(`Airtable respondió ${r.status} al leer ${cual}`);
+    }
+    return r.json();
+  };
+
   const [permisos, vacaciones, novedades] = await Promise.allSettled([
-    fetch(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLES.PERMISO)}?filterByFormula=${formula}&sort[0][field]=${sortPerm}&sort[0][direction]=desc&maxRecords=5`, opts).then((r) => r.json()),
-    fetch(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLES.VACACIONES)}?filterByFormula=${formula}&sort[0][field]=${sortVac}&sort[0][direction]=desc&maxRecords=5`, opts).then((r) => r.json()),
-    fetch(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLES.NOVEDADES)}?filterByFormula=${formula}&sort[0][field]=${sortNov}&sort[0][direction]=desc&maxRecords=5`, opts).then((r) => r.json()),
+    leer(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(tablas.permiso)}?filterByFormula=${formula}&sort[0][field]=${sortPerm}&sort[0][direction]=desc&maxRecords=5`, "permisos"),
+    leer(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(tablas.vacaciones)}?filterByFormula=${formula}&sort[0][field]=${sortVac}&sort[0][direction]=desc&maxRecords=5`, "vacaciones"),
+    leer(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(tablas.novedades)}?filterByFormula=${formula}&sort[0][field]=${sortNov}&sort[0][direction]=desc&maxRecords=5`, "novedades"),
   ]);
 
   const rows: Row[] = [];
@@ -119,9 +140,11 @@ async function fetchRecientes(idCore: string): Promise<Row[]> {
  * compensación, la reposición quedó acordada aunque nadie nombrara un plan.
  * Preguntarle al colaborador ahí lo haría rehacer un compromiso ya cerrado.
  */
-async function fetchSinPlanCompensacion(idCore: string): Promise<PermisoSinPlan[]> {
-  const BASE = process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
-  const KEY  = process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
+async function fetchSinPlanCompensacion(
+  idCore: string,
+  airtable?: AirtableConfig,
+): Promise<PermisoSinPlan[]> {
+  const { baseId: BASE, apiKey: KEY, tablas } = resolverAirtable(airtable);
 
   const aprobado = ESTADOS_APROBADOS.map(
     (e) => `{${FIELDS.PERMISO.ESTADO}}='${escapeAirtableValue(e)}'`
@@ -137,10 +160,14 @@ async function fetchSinPlanCompensacion(idCore: string): Promise<PermisoSinPlan[
 
   try {
     const res = await fetch(
-      `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLES.PERMISO)}?filterByFormula=${formula}&maxRecords=10`,
+      `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(tablas.permiso)}?filterByFormula=${formula}&maxRecords=10`,
       { headers: { Authorization: `Bearer ${KEY}` }, cache: "no-store" }
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      // Igual que arriba: el aviso no se muestra, pero el fallo no se calla.
+      console.error("[SolicitudesOverview] compensaciones sin plan:", await res.text());
+      return [];
+    }
 
     const data = await res.json();
     return ((data.records ?? []) as AirtableRecord[]).map((r) => {
@@ -274,11 +301,12 @@ export async function SolicitudesOverview({
   nombre,
   basePath = "/dashboard/solicitudes",
   apiBasePath = "",
+  airtable,
   children,
 }: Props) {
   const [recientes, sinPlan] = await Promise.all([
-    fetchRecientes(idCore),
-    fetchSinPlanCompensacion(idCore),
+    fetchRecientes(idCore, airtable),
+    fetchSinPlanCompensacion(idCore, airtable),
   ]);
 
   const acciones: { key: ModuloKey; label: string; href: string }[] = [

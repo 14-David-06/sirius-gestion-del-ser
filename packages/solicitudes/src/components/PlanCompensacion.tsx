@@ -5,7 +5,7 @@
  *
  * Lo usan las dos puntas del flujo: el trabajador lo propone al radicar el
  * permiso y Gestión del Ser lo confirma —o lo cambia— al autorizar. La lógica de
- * los planes vive en `src/lib/compensacion.ts`; aquí solo está la interfaz.
+ * los planes vive en `../lib/compensacion.ts`; aquí solo está la interfaz.
  */
 
 import {
@@ -15,7 +15,7 @@ import {
   PLAN_RETO,
   sabadosNecesarios,
   generarDiasCompensacion,
-} from "@/lib/compensacion";
+} from "../lib/compensacion";
 import { CalendarioPermiso } from "./CalendarioPermiso";
 import { SelectorFecha } from "./SelectorFecha";
 import { formatFecha } from "./ui";

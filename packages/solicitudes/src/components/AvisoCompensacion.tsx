@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlanCompensacion, DATOS_PLAN_VACIOS, type DatosPlan } from "./PlanCompensacion";
 import { MODULOS, formatFecha } from "./ui";
-import { PLAN_RETO, PLAN_SABADO, esSabado, generarDiasCompensacion } from "@/lib/compensacion";
+import { PLAN_RETO, PLAN_SABADO, esSabado, generarDiasCompensacion } from "../lib/compensacion";
 
 export interface PermisoSinPlan {
   id: string;

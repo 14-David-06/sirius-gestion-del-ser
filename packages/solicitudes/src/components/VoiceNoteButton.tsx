@@ -50,7 +50,7 @@ export function VoiceNoteButton({
     if (typeof window === "undefined") return;
 
     // Sin soporte no se crea nada: el aviso lo da el click sobre el botón.
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = constructorDeVoz();
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition() as SpeechRecognitionInstance;
@@ -286,9 +286,24 @@ interface SpeechRecognitionInstance {
   onend: (() => void) | null;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognitionInstance;
-    webkitSpeechRecognition: new () => SpeechRecognitionInstance;
-  }
+/**
+ * El constructor se lee del `window` con un cast local, no ampliando la interfaz
+ * global.
+ *
+ * ⚠️ Un `declare global { interface Window }` desde un paquete choca con
+ * cualquier app que declare lo mismo —el error es `TS2717: Subsequent property
+ * declarations must have the same type`— y la app no puede arreglarlo sin editar
+ * el paquete. Ya pasó al instalar el módulo en DataLab, que declaraba
+ * `SpeechRecognition: any`.
+ */
+type VentanaConVoz = Window &
+  typeof globalThis & {
+    SpeechRecognition?: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+  };
+
+function constructorDeVoz(): (new () => SpeechRecognitionInstance) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as VentanaConVoz;
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }

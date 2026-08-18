@@ -43,7 +43,7 @@ interface AutorizarBody {
   // Campos específicos para permisos
   remunerado?: boolean;
   compensado?: boolean;
-  /** Id del plan con el que el trabajador repone el tiempo (src/lib/compensacion.ts). */
+  /** Id del plan con el que el trabajador repone el tiempo (@sirius/solicitudes/compensacion). */
   planCompensacion?: string;
   diasCompensacion?: DiaCompensacion[];
 }

@@ -1,0 +1,40 @@
+{
+  "name": "@sirius/solicitudes",
+  "version": "1.2.2",
+  "description": "Módulo de solicitudes de Sirius — permisos, vacaciones y novedades de nómina: formularios, firma digital y route handlers de Airtable.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "//": "Se distribuye en TypeScript, sin paso de build: la app consumidora lo transpila con `transpilePackages` de Next. Precompilarlo obligaría a versionar y publicar por cada cambio, y perdería el salto al código fuente desde el editor. Los tests corren con la configuración de vitest de la app anfitriona (include: packages/*/src/**/*.test.ts).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./infra": "./src/infra.ts",
+    "./dia-siriano": "./src/dia-siriano.ts",
+    "./pdf": "./src/pdf/index.ts",
+    "./compensacion": "./src/lib/compensacion.ts",
+    "./fecha": "./src/lib/fecha-bogota.ts",
+    "./festivos": "./src/lib/festivos.ts",
+    "./schema": "./src/lib/schema.ts",
+    "./constants": "./src/lib/constants.ts",
+    "./styles.css": "./styles.css"
+  },
+  "files": [
+    "src",
+    "styles.css",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "next": ">=15",
+    "react": ">=19",
+    "react-dom": ">=19",
+    "pdf-lib": ">=1.17"
+  },
+  "peerDependenciesMeta": {
+    "pdf-lib": {
+      "optional": true
+    }
+  }
+}

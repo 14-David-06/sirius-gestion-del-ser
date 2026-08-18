@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { PDFDocument, PDFName } from "pdf-lib";
 import { generarPdfPermisoSiriano } from "./permiso-siriano";
-import { FIRMA_FIXTURE_TAMANO } from "@/test/firma-fixture";
+import { FIRMA_FIXTURE_TAMANO } from "./firma-fixture";
 
 // PNG 2x2 válido — simula la firma capturada en el canvas.
 const FIRMA_PNG =

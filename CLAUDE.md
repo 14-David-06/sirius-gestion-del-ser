@@ -129,7 +129,8 @@ a un mensaje que lo dice; al activar el flujo hay que cambiar la variable a
 
 Toda la aplicación va sobre la misma fotografía nocturna
 (`public/vlcsnap-2026-08-10-08h28m10s623.png`) con tarjetas de vidrio. Las
-primitivas están en `src/app/globals.css` y el fondo en
+primitivas están en `packages/solicitudes/styles.css` —viajan con el módulo,
+porque son de sus componentes— y `src/app/globals.css` las importa. El fondo es
 `src/components/FondoNocturno.tsx`.
 
 | Pieza | Para qué |
@@ -161,10 +162,11 @@ Dos apoyos del mismo piso:
 
 Cuatro reglas más que se rompen sin darse cuenta:
 
-1. **`.glass` vive en `globals.css`, no repartido en clases de Tailwind.** Al
+1. **`.glass` vive en una hoja propia, no repartido en clases de Tailwind.** Al
    imprimir hay que devolver todas las tarjetas a blanco sobre negro de un solo
    golpe: un PDF de permiso con fondo translúcido sale ilegible. El `@media print`
-   ya lo hace para `.glass`, `.glass-solid` y `.campo-oscuro`.
+   de `packages/solicitudes/styles.css` ya lo hace para `.glass`, `.glass-solid` y
+   `.campo-oscuro`; en `globals.css` solo queda lo de esta app (`body`, `@page`).
 2. **`.campo-oscuro` no es decoración.** Pone `color-scheme: dark`, y sin eso el
    calendario de `type="date"` —que lo pinta el sistema— sale claro con el texto
    blanco del campo encima: blanco sobre blanco.
@@ -173,7 +175,7 @@ Cuatro reglas más que se rompen sin darse cuenta:
    `background-color` del control, y un fondo declarado por el autor gana sobre el
    lienzo oscuro del sistema, así que el relleno translúcido de los demás campos
    lo devolvía a casi blanco. Por eso el `select` es el único campo con relleno
-   **opaco** (`select.campo-oscuro` en `globals.css`, elemento + clase para
+   **opaco** (`select.campo-oscuro` en `styles.css` del paquete, elemento + clase para
    ganarle a la utilidad de Tailwind del call site) y las `option` llevan fondo y
    color explícitos. **No le pongas `bg-white/[…]` a un `<select>`.**
 3. **`.anim-entrada` y `hover:-translate-*` no pueden ir en el mismo elemento.**
@@ -207,9 +209,69 @@ colgado directo del contenedor con scroll se queda del tamaño de la ventana y s
 va al desplazar. `<FondoNocturno completo />` es para pantallas de una sola vista
 con contenido centrado (`/` y `/login`).
 
+## El paquete `@sirius/solicitudes`
+
+`packages/solicitudes/` es un **paquete de npm real** (workspace del root), no una
+carpeta con alias: tiene `package.json` con `exports`, se instala en otras apps
+con `npm pack` + el tarball, y su guía de integración es
+`packages/solicitudes/README.md`. Se distribuye en TypeScript sin build, así que
+**la app consumidora necesita `transpilePackages: ["@sirius/solicitudes"]`**.
+
+⚠️ **No lo aliases en `tsconfig.json`.** Se resuelve por el workspace y por su
+campo `exports`; un alias cortocircuitaría el mismo camino que usarán las otras
+apps y las subrutas dejarían de verificarse al compilar.
+
+| Subruta | Qué trae |
+|---------|----------|
+| `@sirius/solicitudes` | Componentes y sistema de diseño (cliente) |
+| `@sirius/solicitudes/server` | `create*Handlers`, `TABLES`/`FIELDS`, `escapeAirtableValue` |
+| `@sirius/solicitudes/infra` | Puertos de almacenamiento y de documento |
+| `@sirius/solicitudes/dia-siriano` | `crearDiaSirianoInfra()` — el documento hecho, la app solo lo archiva |
+| `@sirius/solicitudes/pdf` | Maqueta institucional, logo, QR y firma de Gestión del Ser |
+| `@sirius/solicitudes/compensacion` · `/fecha` · `/festivos` · `/schema` · `/constants` | Dominio puro |
+| `@sirius/solicitudes/styles.css` | Primitivas de la superficie nocturna |
+
+**Los handlers no saben de auth ni de S3.** Reciben `{ resolvePayload, infra }`:
+esta app los cablea en `src/lib/sesion-solicitudes.ts` (el JWT de la cookie) y
+`src/lib/solicitudes-infra.ts` (S3 + `pdf-lib` + adjuntos de Airtable). Ese
+adaptador es la única frontera donde aparece «S3» — el paquete solo conoce `key`
+y `archivadaEn`, y así otra app puede montar el módulo sobre otro almacenamiento.
+
+Dos consecuencias que no se pueden aflojar:
+
+- **La firma nunca se guarda en Airtable.** El paquete escribe la `key` que
+  devuelve el adaptador, jamás el base64: un PNG de firma en un campo de texto
+  queda legible para cualquiera con acceso a la tabla. Y esa `key` no puede ser
+  una URL firmada — expiran, y el registro quedaría con un enlace muerto.
+- **Sin `infra.diaSiriano`, el permiso de día siriano se rechaza con 400.** Nace
+  autorizado, y registrar una autorización sin documento deja al colaborador con
+  un permiso concedido y nada que lo acredite.
+
+Qué se quedó fuera del paquete a propósito: autorización de solicitudes,
+`/api/documentos`, histórico, `/api/me` y la generación de PDF. Los tres primeros
+dependen de reglas de acceso de esta app; el PDF entra por `infra`.
+
+⚠️ **Hay dos esquemas de Airtable en el repo**: `src/lib/airtable-schema.ts` (app)
+y `packages/solicitudes/src/lib/schema.ts` (paquete). Es duplicación anterior a la
+extracción; si cambias un nombre de campo de solicitudes, revisa los dos.
+
 ## Estructura del Monorepo
 
 ```
+packages/
+└── solicitudes/                        # @sirius/solicitudes — paquete publicable
+    ├── package.json                    #   exports: . | /server | /infra | /compensacion | …
+    ├── styles.css                      #   primitivas .glass / .campo-oscuro / .anim-*
+    ├── README.md                       #   guía de integración para otras apps
+    └── src/
+        ├── components/                 #   formularios, firma, calendario, sistema de diseño
+        ├── handlers/                   #   create{Permiso|Vacaciones|Novedades}Handlers
+        ├── lib/                        #   schema, constants, compensacion, festivos, fecha
+        ├── pdf/                         #   maqueta, logo, QR, firma institucional, día siriano
+        ├── dia-siriano.ts               #   crearDiaSirianoInfra()
+        ├── infra.ts                    #   puertos: guardarFirma, adjuntar, diaSiriano
+        ├── index.ts                    #   entrada de cliente
+        └── server.ts                   #   entrada de servidor
 src/
 ├── app/
 │   ├── api/
@@ -240,6 +302,8 @@ src/
 │   ├── airtable-schema.ts              # FUENTE ÚNICA: TABLES, FIELDS, FK_ID_CORE, estados
 │   ├── constants.ts                    # Enums de negocio: TIPOS_PERMISO, TIPOS_NOVEDAD
 │   ├── auth.ts                         # signJWT(), verifyJWT(), hashPassword(), verifyPassword()
+│   ├── sesion-solicitudes.ts           # resolvePayload que inyecta @sirius/solicitudes
+│   ├── solicitudes-infra.ts            # adaptador S3 + pdf-lib + adjuntos del paquete
 │   └── security.ts                     # escapeAirtableValue()
 └── proxy.ts                            # Auth guard Next.js 16: protege /dashboard/**
 ```
@@ -524,9 +588,10 @@ bajo `dias-sirianos/`.
 ### Planes de compensación de un permiso
 
 Cuando Gestión del Ser marca un permiso como **Compensatorio**, tiene que elegir
-con cuál de los tres planes lo repone el trabajador. `src/lib/compensacion.ts` es
-la fuente única: define `PLANES_COMPENSACION` y traduce cada plan a la lista de
-días `[{fecha, horas, descripcion}]` que ya consumían el PDF y el histórico.
+con cuál de los tres planes lo repone el trabajador. `@sirius/solicitudes/compensacion`
+es la fuente única (`src/lib/compensacion.ts` es solo un reenvío): define
+`PLANES_COMPENSACION` y traduce cada plan a la lista de días
+`[{fecha, horas, descripcion}]` que ya consumían el PDF y el histórico.
 
 | Plan | `id` | Cómo se agenda |
 |------|------|----------------|
@@ -592,7 +657,7 @@ Al aprobar o rechazar, `/api/solicitudes/autorizar`:
    `PDF_Autorizacion_S3_Key`, `Hash_Documento` y los datos del firmante aprobador
 5. Adjunta el PDF y la firma a los campos Attachment vía `subirAdjuntoAirtable()`
 
-### Maqueta de los PDF — `src/lib/pdf/maqueta.ts`
+### Maqueta de los PDF — `@sirius/solicitudes/pdf`
 
 Reproduce el formato institucional que ya circulaba en HTML: encabezado
 **logo · título centrado · QR**, píldora de estado, rejilla de datos a dos
@@ -606,12 +671,20 @@ distinta cara según cuál fue:
 
 | Documento | Archivo | Cuándo se emite |
 |-----------|---------|-----------------|
-| Autorización (permiso / vacaciones) | `pdf/autorizacion.ts` | Al resolver la solicitud en `/api/solicitudes/autorizar` |
-| Día siriano | `pdf/permiso-siriano.ts` | **Al radicarlo**, en `POST /api/solicitudes/permiso` — nace autorizado |
+| Autorización (permiso / vacaciones) | `src/lib/pdf/autorizacion.ts` (esta app) | Al resolver la solicitud en `/api/solicitudes/autorizar` |
+| Día siriano | `pdf/permiso-siriano.ts` (en el paquete) | **Al radicarlo**, en `POST /api/solicitudes/permiso` — nace autorizado |
 
 ⚠️ El de día siriano **cabe en una sola página** y hay tests que lo comprueban:
 por eso su motivo se recorta a `MAX_LINEAS_MOTIVO`. La firma y la nota legal no
 pueden irse a una segunda hoja donde nadie las buscaría.
+
+⚠️ **La maqueta, el logo, el QR, la firma institucional y el documento del día
+siriano viven en el paquete** (`packages/solicitudes/src/pdf/`), no en `src/lib/pdf/`:
+PiroliApp también emite ese permiso, y el trabajador no debería recibir dos papeles
+con distinta cara según desde qué app lo radicó. `src/lib/pdf/index.ts` quedó como
+fachada para que el resto de la app siga importando de `@/lib/pdf`, y
+`autorizacion.ts` —que sí es de esta app, porque depende de su flujo de
+aprobación— construye su página con las primitivas del paquete.
 
 El logo y el QR viajan empotrados en base64 (`pdf/logo.ts`, `pdf/qr.ts`) —
 leerlos de `public/`, de S3 o de una CDN haría que el documento saliera sin marca
@@ -633,7 +706,7 @@ Sin ella, el único papel del trámite no acreditaría la autorización que el p
 documento declara.
 
 ⚠️ **El PNG vive en la variable de entorno `FIRMA_GESTION_SER_BASE64`, no en el
-repositorio.** Estuvo empotrado en `pdf/firma-gestion-ser.ts` hasta la auditoría
+repositorio.** Estuvo empotrado en `firma-gestion-ser.ts` hasta la auditoría
 del 2026-08-13: una firma manuscrita es un instrumento de autenticación, y ahí
 quedaba legible para cualquiera con acceso al código, a un fork o al historial
 —del que no se puede retirar—. En una variable se rota y su alcance se limita a
@@ -645,8 +718,8 @@ quien despliega.
   el PDF resultante. Quien emite ya trata el error como «documento no emitido,
   permiso igual registrado».
 - Los tests **no llevan la firma real**: `src/test/setup.ts` inyecta el trazo
-  sintético de `src/test/firma-fixture.ts`, del mismo tamaño (264 × 152 px), que
-  es lo único que miran las aserciones.
+  sintético que el paquete exporta como `FIRMA_FIXTURE_BASE64`, del mismo tamaño
+  (264 × 152 px), que es lo único que miran las aserciones.
 
 Bajo el trazo no va un nombre propio: la firma acredita a la dependencia, no a
 alguien que hubiera estudiado el caso. `FIRMANTE_GESTION_SER` la identifica como
@@ -771,7 +844,8 @@ npx tsc --noEmit         # Type-check (ignorar errores de .next/types — caché
 ## Reglas para Agentes de Desarrollo
 
 1. **`npm run build` después de cada cambio** — sin excepciones
-2. **No separar el monorepo** — todo bajo `src/` con App Router
+2. **La app va toda bajo `src/` con App Router.** Lo único que vive fuera es
+   `packages/solicitudes/`, que es un paquete publicable — ver su sección arriba
 3. **`escapeAirtableValue()`** siempre antes de interpolar en fórmulas Airtable
 4. **`payload.idCore` como FK** — nunca `payload.sub` fuera de tabla Personal
 5. **Formularios de solicitudes** — SIEMPRE incluir:

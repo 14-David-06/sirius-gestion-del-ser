@@ -1,24 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeAirtableValue } from "../lib/security";
-import { TABLES, FIELDS, FK_ID_CORE } from "../lib/schema";
-import type { ResolvePayload } from "../types";
-import { uploadFirmaTrabajador } from "@/lib/s3";
+import { FIELDS, FK_ID_CORE } from "../lib/schema";
+import { resolverAirtable } from "../infra";
+import type { OpcionesHandlers } from "../types";
 
-const base = () => process.env.AIRTABLE_BASE_ID_NOVEDADES_NOMINA!;
-const key  = () => process.env.AIRTABLE_API_KEY_NOVEDADES_NOMINA!;
+export function createVacacionesHandlers(opciones: OpcionesHandlers) {
+  const { resolvePayload, infra, airtable } = opciones;
 
-export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
   async function GET() {
     const payload = await resolvePayload();
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const { baseId, apiKey, tablas } = resolverAirtable(airtable);
     const formula = encodeURIComponent(`{${FK_ID_CORE}}='${escapeAirtableValue(payload.idCore)}'`);
     const sort    = encodeURIComponent(FIELDS.VACACIONES.FECHA_PRESENTACION);
     const params  = `filterByFormula=${formula}&sort[0][field]=${sort}&sort[0][direction]=desc&maxRecords=20`;
     const res = await fetch(
-      `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.VACACIONES)}?${params}`,
-      { headers: { Authorization: `Bearer ${key()}` }, cache: "no-store" }
+      `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tablas.vacaciones)}?${params}`,
+      { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store" }
     );
+
+    // ⚠️ No basta con leer `records`: la respuesta de error de Airtable no lo trae,
+    // y devolverla como lista vacía le dice al colaborador «no tienes solicitudes»
+    // cuando lo que pasa es que la credencial no alcanza o la tabla no es esa. Así
+    // se escondió una API key sin acceso a la base durante toda una integración.
+    if (!res.ok) {
+      console.error("[solicitudes/vacaciones GET]", await res.text());
+      return NextResponse.json({ error: "Error al consultar Airtable" }, { status: 500 });
+    }
+
     const data = await res.json();
     return NextResponse.json(data.records ?? []);
   }
@@ -27,6 +37,7 @@ export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
     const payload = await resolvePayload();
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const { baseId, apiKey, tablas } = resolverAirtable(airtable);
     const body  = await req.json();
     const today = new Date().toISOString().split("T")[0];
 
@@ -44,10 +55,19 @@ export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
 
     if (body.fechaReintegro) fields[FIELDS.VACACIONES.FECHA_REINTEGRO] = body.fechaReintegro;
 
-    // Firma del trabajador - Upload a S3
+    // Firma del trabajador — la archiva la app (ver ../infra). Sin adaptador no
+    // se guarda a medias: el PNG no puede terminar en un campo de Airtable.
     if (body.firmaBase64) {
+      if (!infra?.guardarFirma) {
+        console.error("[vacaciones POST] falta infra.guardarFirma");
+        return NextResponse.json(
+          { error: "Error al guardar firma digital" },
+          { status: 500 }
+        );
+      }
+
       try {
-        const uploadResult = await uploadFirmaTrabajador({
+        const firma = await infra.guardarFirma({
           base64: body.firmaBase64,
           cedula: payload.cedula,
           idCore: payload.idCore,
@@ -55,16 +75,16 @@ export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
           metadata: {
             fechaInicio: body.fechaInicio,
             fechaFin: body.fechaFin,
-            dias: body.dias,
+            dias: String(body.dias ?? ""),
             fechaSolicitud: today,
           },
         });
 
-        // Guardar referencia S3 en Airtable
-        fields[FIELDS.VACACIONES.FIRMA_S3_KEY] = uploadResult.s3Key;
-        fields[FIELDS.VACACIONES.FECHA_FIRMA_TRAB] = uploadResult.uploadedAt;
+        // Solo la referencia, nunca el base64.
+        fields[FIELDS.VACACIONES.FIRMA_S3_KEY] = firma.key;
+        fields[FIELDS.VACACIONES.FECHA_FIRMA_TRAB] = firma.archivadaEn;
       } catch (error) {
-        console.error("[vacaciones POST - S3 upload]", error);
+        console.error("[vacaciones POST - archivar firma]", error);
         return NextResponse.json(
           { error: "Error al guardar firma digital" },
           { status: 500 }
@@ -73,10 +93,10 @@ export function createVacacionesHandlers(resolvePayload: ResolvePayload) {
     }
 
     const res = await fetch(
-      `https://api.airtable.com/v0/${base()}/${encodeURIComponent(TABLES.VACACIONES)}`,
+      `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tablas.vacaciones)}`,
       {
         method: "POST",
-        headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ fields }),
       }
     );

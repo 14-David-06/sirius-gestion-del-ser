@@ -37,7 +37,7 @@ import {
   rejilla,
   seccion,
   tarjetaFirma,
-} from "./maqueta";
+} from "@sirius/solicitudes/pdf";
 
 export { formatearFechaLarga };
 

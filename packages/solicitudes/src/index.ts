@@ -1,3 +1,11 @@
+/**
+ * Entrada de cliente de `@sirius/solicitudes`: componentes y sistema de diseño.
+ *
+ * Los route handlers viven en `@sirius/solicitudes/server` y no aquí a propósito.
+ * Importan `next/server` y el adaptador de almacenamiento, y un solo barril
+ * arrastraría todo eso al bundle del navegador de cualquier página que solo
+ * quisiera un formulario.
+ */
 export { SolicitudesOverview } from "./components/SolicitudesOverview";
 export { PermisoForm }         from "./components/PermisoForm";
 export { VacacionesForm }      from "./components/VacacionesForm";
@@ -28,7 +36,4 @@ export {
   formatFecha,
 } from "./components/ui";
 export type { ModuloKey } from "./components/ui";
-export { createPermisoHandlers }    from "./handlers/permiso";
-export { createVacacionesHandlers } from "./handlers/vacaciones";
-export { createNovedadesHandlers }  from "./handlers/novedades";
-export type { SiriusEmployee, ResolvePayload } from "./types";
+export type { SiriusEmployee } from "./types";

@@ -2,7 +2,7 @@
  * Setup global de Vitest.
  *
  * La firma institucional de Gestión del Ser ya no viaja en el código: vive en
- * `FIRMA_GESTION_SER_BASE64` (ver `src/lib/pdf/firma-gestion-ser.ts`). Los tests
+ * `FIRMA_GESTION_SER_BASE64` (ver `@sirius/solicitudes/pdf`). Los tests
  * que emiten el PDF del día siriano necesitan *una* firma, no *la* firma, así
  * que aquí se inyecta un trazo sintético con las mismas dimensiones que el real.
  *
@@ -11,6 +11,6 @@
  * instrumento de autenticación y el historial de git no se puede reescribir.
  */
 
-import { FIRMA_FIXTURE_BASE64 } from "./firma-fixture";
+import { FIRMA_FIXTURE_BASE64 } from "@sirius/solicitudes/pdf";
 
 process.env.FIRMA_GESTION_SER_BASE64 ??= FIRMA_FIXTURE_BASE64;
