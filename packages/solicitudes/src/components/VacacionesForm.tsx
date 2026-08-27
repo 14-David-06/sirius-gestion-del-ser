@@ -27,11 +27,41 @@ type Me = { nombre: string; cedula: string; idCore: string; cargo: string };
 const COLOR = MODULOS.vacaciones.color;
 const CLS = inputCls("vacaciones");
 
+// Tope legal de compensación en dinero: el trabajador puede pedir en plata
+// hasta la mitad de sus 15 días hábiles de vacaciones (art. 20, Ley 1429 de
+// 2010). En Sirius se maneja como máximo 7 días.
+const MAX_DIAS_DINERO = 7;
+const OPCIONES_DIAS_DINERO = Array.from({ length: MAX_DIAS_DINERO + 1 }, (_, i) => i);
+
+/** Fila del resumen de días: etiqueta a la izquierda, cantidad a la derecha. */
+function FilaResumen({
+  label,
+  valor,
+  destacado = false,
+}: {
+  label: string;
+  valor: number;
+  destacado?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className={destacado ? "font-semibold text-white" : "text-white/70"}>{label}</dt>
+      <dd
+        className="flex-shrink-0 font-semibold tabular-nums"
+        style={{ color: destacado ? COLOR : "rgba(255,255,255,0.85)" }}
+      >
+        {valor} {valor === 1 ? "día" : "días"}
+      </dd>
+    </div>
+  );
+}
+
 export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solicitudes" }: Props) {
   const [me, setMe] = useState<Me | null>(null);
   // El calendario en modo rango devuelve todos los días del período, no solo los extremos.
   const [fechas, setFechas] = useState<string[]>([]);
   const [fechaReintegro, setFechaReintegro] = useState("");
+  const [diasDinero, setDiasDinero] = useState(0);
   const [motivo, setMotivo] = useState("");
   const [firmaBlob, setFirmaBlob] = useState<Blob | null>(null);
   const [firmaConfirmada, setFirmaConfirmada] = useState(false);
@@ -46,11 +76,15 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
   const fechaInicio = fechas[0] ?? "";
   const fechaFin = fechas[fechas.length - 1] ?? "";
   const dias = fechas.length;
+  // Lo que se radica son los días a disfrutar; los remunerados en dinero suman
+  // al período causado, no al calendario de descanso.
+  const totalVacaciones = dias + diasDinero;
 
   function resetForm() {
     setSuccess(false);
     setFechas([]);
     setFechaReintegro("");
+    setDiasDinero(0);
     setMotivo("");
     setFirmaBlob(null);
     setFirmaConfirmada(false);
@@ -88,6 +122,8 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
           fechaFin,
           fechaReintegro: fechaReintegro || undefined,
           dias,
+          diasRemunerados: diasDinero,
+          totalVacaciones,
           motivo,
           cargo: me?.cargo,
           firmaBase64
@@ -184,10 +220,52 @@ export function VacacionesForm({ apiBasePath = "", basePath = "/dashboard/solici
             </Field>
           </div>
 
-          {/* ── 3. Firma ─────────────────────────────────────────────────── */}
+          {/* ── 3. Días remunerados en dinero ─────────────────────────────── */}
+          <div className="flex flex-col gap-4 border-t border-white/10 pt-5">
+            <SectionTitle color={COLOR} paso={3}>
+              Días remunerados en dinero
+            </SectionTitle>
+
+            <Field
+              label="¿Cuántos días quieres recibir en dinero?"
+              hint={`máximo ${MAX_DIAS_DINERO} días`}
+            >
+              <div className="flex flex-wrap gap-2">
+                {OPCIONES_DIAS_DINERO.map((n) => {
+                  const activo = n === diasDinero;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setDiasDinero(n)}
+                      aria-pressed={activo}
+                      className="h-10 w-10 rounded-xl text-sm font-semibold ring-1 ring-inset ring-white/10 transition"
+                      style={
+                        activo
+                          ? { background: COLOR, color: "#fff", boxShadow: `0 10px 24px -14px ${COLOR}` }
+                          : { background: "rgba(0,0,0,0.2)", color: "rgba(255,255,255,0.8)" }
+                      }
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <dl className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+              <FilaResumen label="Vacaciones a disfrutar" valor={dias} />
+              <FilaResumen label="Remunerados en dinero" valor={diasDinero} />
+              <div className="border-t border-white/10 pt-2">
+                <FilaResumen label="Total de vacaciones" valor={totalVacaciones} destacado />
+              </div>
+            </dl>
+          </div>
+
+          {/* ── 4. Firma ─────────────────────────────────────────────────── */}
           <FirmaSection
             color={COLOR}
-            paso={3}
+            paso={4}
             firmaConfirmada={firmaConfirmada}
             onFirmar={(blob) => {
               setFirmaBlob(blob);

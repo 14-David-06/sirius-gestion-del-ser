@@ -41,19 +41,24 @@ export function createNovedadesHandlers(opciones: OpcionesHandlers) {
     const { baseId, apiKey, tablas } = resolverAirtable(airtable);
     const body = await req.json();
 
+    // La tabla no tiene un campo para el tipo escrito a mano: cuando el
+    // colaborador elige «Otra», su texto va dentro de `Tipo de Novedad`. Sin esto
+    // el detalle se perdería y el registro solo diría «Otra».
+    const tipo =
+      body.tipo === TIPO_NOVEDAD_OTRA && body.otraTipo
+        ? `${TIPO_NOVEDAD_OTRA}: ${body.otraTipo}`
+        : body.tipo;
+
     const fields: Record<string, unknown> = {
       [FK_ID_CORE]:                   payload.idCore,
-      [FIELDS.NOVEDADES.TIPO]:        body.tipo,
+      [FIELDS.NOVEDADES.EMPLEADO]:    payload.nombre,
+      [FIELDS.NOVEDADES.TIPO]:        tipo,
       [FIELDS.NOVEDADES.DESCRIPCION]: body.descripcion,
       [FIELDS.NOVEDADES.ESTADO]:      ESTADO_PENDIENTE,
     };
 
     if (body.tipo === TIPO_HORAS_EXTRA && body.horasExtra) {
       fields[FIELDS.NOVEDADES.HORAS_EXTRA] = Number(body.horasExtra);
-    }
-
-    if (body.tipo === TIPO_NOVEDAD_OTRA && body.otraTipo) {
-      fields[FIELDS.NOVEDADES.OTRA_TIPO] = body.otraTipo;
     }
 
     const res = await fetch(

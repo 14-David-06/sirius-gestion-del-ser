@@ -89,7 +89,7 @@ export const FIELDS = {
   },
   NOVEDADES: {
     TIPO:           "Tipo de Novedad",
-    OTRA_TIPO:      "Otra Tipo",
+    EMPLEADO:       "Empleado/Responsable",
     DESCRIPCION:    "Descripción de la Novedad",
     HORAS_EXTRA:    "Número Horas Extras",
     ESTADO:         "Estado del Registro",
