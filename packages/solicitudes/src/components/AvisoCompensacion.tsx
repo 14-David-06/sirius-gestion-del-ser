@@ -207,9 +207,9 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
       )}
 
       {abierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040711]/80 p-4 backdrop-blur-md">
-          <div className="anim-entrada flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b1120] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)]">
-            <div className="border-b border-white/10 px-6 py-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040711]/80 p-2 backdrop-blur-md sm:p-4">
+          <div className="anim-entrada flex max-h-[calc(100dvh-1rem)] w-full max-w-lg sm:max-h-[92vh] flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b1120] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)]">
+            <div className="border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
               <h2 className="text-lg font-semibold tracking-tight text-white">
                 ¿Cómo vas a reponer el tiempo?
               </h2>
@@ -219,7 +219,7 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               <PlanCompensacion
                 plan={plan}
                 onPlanChange={setPlan}
@@ -237,7 +237,7 @@ export function AvisoCompensacion({ permisos, apiBasePath = "" }: Props) {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-black/30 px-6 py-4">
+            <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-black/30 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => setAbierto(null)}

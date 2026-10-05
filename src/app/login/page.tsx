@@ -50,7 +50,7 @@ export default function LoginPage() {
       <FondoNocturno completo />
 
       <div className="relative z-10 mx-4 w-full max-w-sm">
-        <div className="glass anim-entrada rounded-2xl p-8">
+        <div className="glass anim-entrada rounded-2xl p-6 sm:p-8">
           <div className="mb-8 flex justify-center">
             <div className="rounded-xl bg-white px-5 py-3 shadow-[0_18px_40px_-20px_rgba(0,0,0,0.9)]">
               <Image src="/Logo-Sirius.png" alt="Sirius" width={148} height={51} priority />

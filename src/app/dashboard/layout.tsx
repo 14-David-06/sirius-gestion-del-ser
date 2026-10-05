@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { verifyJWT } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 import NavLinks from "@/components/NavLinks";
+import SidebarResponsive from "@/components/SidebarResponsive";
 import { FondoNocturno } from "@/components/FondoNocturno";
 
 const ROL_LABEL: Record<string, string> = {
@@ -29,19 +29,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .toUpperCase();
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#f1f5f9" }}>
-      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside
-        className="flex flex-col w-60 flex-shrink-0 h-full"
-        style={{ background: "#0f172a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        {/* Logo */}
-        <div className="flex items-center justify-center px-6 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="bg-white rounded-xl px-4 py-2">
-            <Image src="/Logo-Sirius.png" alt="Sirius" width={110} height={38} priority />
-          </div>
-        </div>
-
+    <div className="flex h-dvh flex-col overflow-hidden md:flex-row" style={{ background: "#f1f5f9" }}>
+      {/* ── Sidebar — columna en escritorio, cajón con barra superior en móvil ── */}
+      <SidebarResponsive>
         {/* Nav */}
         <NavLinks />
 
@@ -63,7 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
           <LogoutButton />
         </div>
-      </aside>
+      </SidebarResponsive>
 
       {/* ── Contenido ──────────────────────────────────────────────────────── */}
       {/*
@@ -72,7 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         dentro del <main> —no en el contenedor de arriba— porque el sidebar es su
         hermano y un fondo por encima lo taparía.
       */}
-      <main className="superficie-noche scroll-noche flex-1 overflow-y-auto" style={{ background: "#070c18" }}>
+      <main className="superficie-noche scroll-noche min-h-0 flex-1 overflow-y-auto" style={{ background: "#070c18" }}>
         {/*
           El envoltorio `relative min-h-full` es el que le da altura al fondo: un
           `absolute inset-0` colgado del <main> con scroll se quedaría del tamaño

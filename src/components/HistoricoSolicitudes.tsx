@@ -424,7 +424,7 @@ export default function HistoricoSolicitudes() {
 
   if (cargando) {
     return (
-      <div className="glass-solid rounded-2xl p-8">
+      <div className="glass-solid rounded-2xl p-6 sm:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-1/4 rounded bg-white/10" />
           <div className="h-4 w-1/2 rounded bg-white/10" />
@@ -440,7 +440,7 @@ export default function HistoricoSolicitudes() {
 
   if (error) {
     return (
-      <div className="glass flex items-center justify-between gap-4 rounded-2xl p-6" style={{ borderColor: "rgba(239,68,68,0.35)" }}>
+      <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-2xl p-6" style={{ borderColor: "rgba(239,68,68,0.35)" }}>
         <p className="font-medium text-rose-200">Error: {error}</p>
         <button
           onClick={cargar}
@@ -659,7 +659,7 @@ export default function HistoricoSolicitudes() {
       {/* Tabla de documentos */}
       {tab === "documentos" ? (
         documentosFiltrados.length === 0 ? (
-          <div className="px-8 py-16 text-center">
+          <div className="px-6 py-16 text-center sm:px-8">
             <p className="font-medium text-white/80">
               {documentos.length === 0
                 ? "Todavía no hay documentos registrados"
@@ -690,7 +690,7 @@ export default function HistoricoSolicitudes() {
             </div>
 
             {documentosFiltrados.length > visibles && (
-              <div className="border-t border-white/10 px-8 py-5 text-center">
+              <div className="border-t border-white/10 px-6 py-5 text-center sm:px-8">
                 <button
                   onClick={() => setVisibles((v) => v + 25)}
                   className="rounded-lg border border-white/12 bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/12 hover:text-white"
@@ -703,7 +703,7 @@ export default function HistoricoSolicitudes() {
         )
       ) : /* Tabla de solicitudes */
       filtradas.length === 0 ? (
-        <div className="px-8 py-16 text-center">
+        <div className="px-6 py-16 text-center sm:px-8">
           <p className="font-medium text-white/80">
             {filas.length === 0
               ? "Todavía no hay solicitudes registradas"
@@ -744,7 +744,7 @@ export default function HistoricoSolicitudes() {
           </div>
 
           {filtradas.length > visibles && (
-            <div className="border-t border-white/10 px-8 py-5 text-center">
+            <div className="border-t border-white/10 px-6 py-5 text-center sm:px-8">
               <button
                 onClick={() => setVisibles((v) => v + 25)}
                 className="rounded-lg border border-white/12 bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/12 hover:text-white"

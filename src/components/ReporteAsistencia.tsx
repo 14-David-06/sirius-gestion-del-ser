@@ -310,7 +310,7 @@ export default function ReporteAsistencia() {
 
       {/* Contenido */}
       {cargando ? (
-        <div className="space-y-3 p-8">
+        <div className="space-y-3 p-6 sm:p-8">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-16 animate-pulse rounded-xl bg-white/[0.07]" />
           ))}
@@ -320,7 +320,7 @@ export default function ReporteAsistencia() {
           {error}
         </div>
       ) : porColaborador.length === 0 ? (
-        <p className="px-8 py-16 text-center text-sm text-white/65">
+        <p className="px-6 py-16 text-center text-sm text-white/65 sm:px-8">
           No hay jornadas que coincidan con los filtros.
         </p>
       ) : (

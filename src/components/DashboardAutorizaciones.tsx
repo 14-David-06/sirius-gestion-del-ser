@@ -104,7 +104,7 @@ export default function DashboardAutorizaciones() {
 
   if (loading) {
     return (
-      <div className="glass-solid rounded-2xl p-8">
+      <div className="glass-solid rounded-2xl p-6 sm:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-1/4 rounded bg-white/10"></div>
           <div className="h-4 w-1/2 rounded bg-white/10"></div>

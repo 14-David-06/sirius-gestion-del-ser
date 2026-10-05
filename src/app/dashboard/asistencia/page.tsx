@@ -23,8 +23,8 @@ export default async function AsistenciaPage() {
 
   if (!alcanceTodos) {
     return (
-      <div className="mx-auto max-w-3xl px-8 py-8">
-        <div className="glass-solid anim-entrada rounded-2xl px-8 py-12 text-center">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-8">
+        <div className="glass-solid anim-entrada rounded-2xl px-6 py-10 text-center sm:px-8 sm:py-12">
           <h1 className="text-xl font-semibold tracking-tight text-white">Asistencia</h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/75">
             El reporte del biométrico consolida las marcaciones de toda la empresa, así que
@@ -37,7 +37,7 @@ export default async function AsistenciaPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-8 py-8">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-8 sm:py-8">
       <div className="glass-solid anim-entrada overflow-hidden rounded-2xl">
         <CargarListaAsistencia enlaceReporte={false} />
       </div>

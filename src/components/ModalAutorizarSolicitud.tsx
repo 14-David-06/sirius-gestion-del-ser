@@ -241,10 +241,10 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
   const idCore = txt(f["ID Personal Core"]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040711]/80 p-4 backdrop-blur-md">
-      <div className="anim-entrada flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b1120] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040711]/80 p-2 backdrop-blur-md sm:p-4">
+      <div className="anim-entrada flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl sm:max-h-[92vh] flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b1120] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)]">
         {/* Header — incluye la identidad del solicitante para no repetirla en una tarjeta aparte */}
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-black/30 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-black/30 px-4 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold tracking-tight text-white">
               Autorizar {TITULOS[tipo]}
@@ -274,7 +274,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
         </div>
 
         {/* Body */}
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
           {/* Detalles de la solicitud + firma del trabajador */}
           <DetallesSolicitud tipo={tipo} fields={f}>
             {Boolean(f["Firma_S3_Key"]) && (
@@ -424,7 +424,7 @@ export function ModalAutorizarSolicitud({ tipo, solicitud, onClose, onSuccess }:
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-black/30 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-black/30 px-4 py-3 sm:px-6 sm:py-4">
           <button
             onClick={onClose}
             disabled={loading}
@@ -677,7 +677,7 @@ function CamposPermiso({
                 {diasCompensacion.map((dia, index) => (
               <div key={index} className="rounded-lg border border-white/[0.08] bg-black/25 p-3">
                 <div className="flex items-end gap-3">
-                  <div className="w-48">
+                  <div className="min-w-0 flex-1 sm:w-48 sm:flex-none">
                     <label className="mb-1 block text-xs text-white/70">Fecha</label>
                     {/* Un día ajustado a mano puede caer en cualquier fecha: aquí
                         el calendario no restringe días de la semana. */}
@@ -688,7 +688,7 @@ function CamposPermiso({
                       permitirPasado
                     />
                   </div>
-                  <div className="w-24">
+                  <div className="w-20 shrink-0 sm:w-24">
                     <label className="mb-1 block text-xs text-white/70">Horas</label>
                     <input
                       type="number"
