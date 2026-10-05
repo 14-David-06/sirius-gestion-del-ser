@@ -109,6 +109,9 @@ export const FIELDS = {
     PDF_AUTORIZACION_URL:    "PDF_Autorizacion_URL",
     PDF_AUTORIZACION_S3_KEY: "PDF_Autorizacion_S3_Key",
     HASH_DOCUMENTO:          "Hash_Documento",
+    // Copia adjunta del PDF para verlo dentro de Airtable (campo creado el
+    // 2026-09-24; antes el PDF de vacaciones solo quedaba en S3).
+    PDF_FIRMADO:             "PDF_Firmado",
     FIRMA_GESTION:           "Firma_Gestion_Ser",
     // Documentos heredados del sistema anterior (solo lectura)
     ARCHIVO_GENERADO:  "Archivo",
